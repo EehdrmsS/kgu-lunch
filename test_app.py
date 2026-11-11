@@ -281,4 +281,9 @@ assert app.set_profile(s6, "k7", "동근", toss="bad id!") and app.set_profile(s
 assert app.set_profile(s6, "k7", "동근" * 20, toss="dong") is None and s6["profiles"]["k7"]["nick"] == ("동근" * 20)[:20]
 assert s6["parties"][0]["members"][0]["nick"] == ("동근" * 20)[:20]  # 이미 낀 모집 이름도 바뀜
 assert app.my_parties(s6, "k7", "2026-11-11") == [(s6["parties"][0], True)] and app.my_parties(s6, "k8", "2026-11-11") == []
+assert app.set_profile(s6, "k7", "동근", split="반반") == "설정값을 확인해주세요"
+assert app.set_profile(s6, "k7", "동근", budget="100만원") and app.set_profile(s6, "k7", "동근", where="달나라")
+assert app.set_profile(s6, "k7", "동근", "dong", "", "N빵", "8천원", "정문", "  해산물, 매운  ") is None
+assert s6["profiles"]["k7"] == {"nick": "동근", "toss": "dong", "kakao": "", "split": "N빵",
+                                "budget": "8천원", "where": "정문", "avoid": "해산물, 매운"}
 print("ok")

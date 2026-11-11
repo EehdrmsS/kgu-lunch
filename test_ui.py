@@ -16,11 +16,20 @@ assert "카톡닉" in md and "오늘 내 모집 0건" in md, md[:300]
 f = next(x for x in at.text_input if x.label == "표시 이름")
 f.input("동근")
 next(x for x in at.text_input if x.label == "토스 아이디").input("dong")
+next(x for x in at.selectbox if x.label == "기본 예산").select("8천원")
+next(x for x in at.selectbox if x.label == "자주 가는 곳").select("정문")
+next(x for x in at.radio if x.label == "기본 정산 방식").set_value("N빵")
+next(x for x in at.text_input if x.label == "못 먹는 재료").input("해산물")
 next(b for b in at.button if b.label == "저장").click()
 at.run()
 assert not at.exception, at.exception
 st_ = json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))
-assert st_["profiles"]["k42"] == {"nick": "동근", "toss": "dong", "kakao": ""}, st_
+assert st_["profiles"]["k42"] == {"nick": "동근", "toss": "dong", "kakao": "", "split": "N빵",
+                                 "budget": "8천원", "where": "정문", "avoid": "해산물"}, st_
+# 저장한 취향이 추천·고르기 필터 기본값으로
+assert at.session_state["rec_budget"] == "8천원" and at.session_state["pk_where"] == "정문"
+assert at.session_state["rec_words"] == "해산물"
+assert "토스 연결됨" in " ".join(m.value for m in at.markdown)
 md = " ".join(m.value for m in at.markdown)
 assert "동근" in md, md[:300]
 # 로그아웃 상태: 로그인 안내 카드

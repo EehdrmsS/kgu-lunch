@@ -454,8 +454,9 @@ def join_party(s, pid, name, menu="", nick=""):
     return None
 
 
-def set_profile(s, uid, nick, toss="", kakao=""):
-    """내 프로필: 표시 이름 + 정산 때 쓸 송금 정보. 회원번호(uid)별로 state["profiles"]에 보관."""
+def set_profile(s, uid, nick, toss="", kakao="", split="메뉴별", budget="1만원", where="전체", avoid=""):
+    """내 프로필: 표시 이름 · 결제(송금 정보, 기본 정산 방식) · 취향(기본 예산·위치·못 먹는 재료).
+    회원번호(uid)별로 state["profiles"]에 보관."""
     nick = str(nick).strip()[:20]
     if not nick:
         return "이름을 적어주세요"
@@ -463,10 +464,13 @@ def set_profile(s, uid, nick, toss="", kakao=""):
         return "토스 아이디는 toss.me/ 뒤에 붙는 영문·숫자만 적어주세요"
     if kakao and not re.fullmatch(r"https://qr\.kakaopay\.com/[A-Za-z0-9]{1,100}", kakao):
         return "카카오페이 링크는 https://qr.kakaopay.com/… 형식이어야 해요"
+    if split not in ("메뉴별", "N빵") or budget not in BUDGETS or where not in WHERES:
+        return "설정값을 확인해주세요"
     profiles = s.setdefault("profiles", {})
     if uid not in profiles and len(profiles) >= 5000:
         return "지금은 프로필을 더 저장할 수 없어요"
-    profiles[uid] = {"nick": nick, "toss": toss, "kakao": kakao}
+    profiles[uid] = {"nick": nick, "toss": toss, "kakao": kakao, "split": split,
+                     "budget": budget, "where": where, "avoid": str(avoid).strip()[:60]}
     for p in s["parties"]:  # 이미 낀 모집에도 바뀐 이름 반영
         for m in p.get("members", []):
             if isinstance(m, dict) and m["name"] == uid:
@@ -724,6 +728,7 @@ def lan_url():
 
 # ---------- 화면 ----------
 PAGES = ["홈", "지도", "고르기", "같이 먹기"]
+WHERES = ["전체", "교내", "정문", "후문"]
 BUDGETS = {"6천원": 6000, "8천원": 8000, "1만원": 10000, "1만5천원": 15000, "상관없음": None}
 REC_KEYS = ["rec_budget", "rec_where", "rec_types", "rec_words", "rec_unknown"]
 CROWD_CLS = {"여유": "ok", "보통": "mid", "붐빔": "busy", "운영 안 함": "no"}
@@ -757,6 +762,7 @@ p,li{color:var(--sub)}
 /* 카드 */
 .card{background:#fff;border:none;border-radius:16px;padding:16px 18px;margin:6px 0 10px}
 .prof{display:flex;align-items:center;gap:14px}.pf-av{flex:0 0 44px;height:44px;border-radius:50%;background:var(--soft);color:var(--brand);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}.pf-av.off{background:#E5E8EB}
+.pf-pay{font-size:12px;color:var(--brand);font-weight:600;margin-top:4px}.fh{font-size:13px;font-weight:700;color:var(--sub);margin:6px 0 -6px}
 .pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
@@ -1015,6 +1021,24 @@ def main():
     profile = state.get("profiles", {}).get(me, {}) if me else {}
     my_nick = profile.get("nick") or (user["nick"] if user else "")
 
+    def apply_prefs(force=False):  # 로그인했거나 프로필을 저장하면 추천·고르기 필터를 내 취향으로
+        if profile and (force or ss.get("_pref_for") != me):
+            for keys, v in ((("rec_budget", "pk_budget"), profile.get("budget")), (("rec_where", "pk_where"), profile.get("where")),
+                            (("rec_words",), profile.get("avoid"))):
+                for k in keys:
+                    if v is not None:
+                        ss[k] = ss["_" + k] = v
+            ss._pref_for = me
+
+    def save_profile():
+        nonlocal profile
+        act(set_profile, me, ss.pf_nick, ss.pf_toss.strip().removeprefix("toss.me/"), ss.pf_kakao.strip(),
+            ss.pf_split, ss.pf_budget, ss.pf_where, ss.pf_avoid)
+        profile = load_state().get("profiles", {}).get(me, {})
+        apply_prefs(force=True)
+
+    apply_prefs()
+
     def login_button(party=""):  # party: 돌아올 초대 모집 id, "g"면 같이 먹기 화면, 비우면 홈
         if not KAKAO_KEY:
             st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
@@ -1035,23 +1059,34 @@ def main():
         if user:
             mine_today = my_parties(state, me, today())
             nxt = min((p for p, _ in mine_today if p["time"] >= now_hm), key=lambda p: p["time"], default=None)
+            pay_txt = " · ".join(n + " 연결됨" for n, k in (("토스", "toss"), ("카카오페이", "kakao")) if profile.get(k)) or "송금 정보 없음"
             nxt_txt = (f'{e(nxt["time"])} {e(label(by_name[nxt["place"]]) if nxt["place"] in by_name else nxt["place"])}'
                        if nxt else "예정된 모집 없음")
             st.markdown(f'<div class="card prof"><div class="pf-av">{e(my_nick[:1])}</div><div>'
                         f'<div class="pf-n">{e(my_nick)}</div>'
-                        f'<div class="pf-s">오늘 내 모집 {len(mine_today)}건 · {nxt_txt}</div></div></div>', unsafe_allow_html=True)
+                        f'<div class="pf-s">오늘 내 모집 {len(mine_today)}건 · {nxt_txt}</div>'
+                        f'<div class="pf-pay">{pay_txt}</div></div></div>', unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             c1.button("내 모집 보기", use_container_width=True, on_click=go, args=(PAGES[3],), kwargs={"only_mine": True})
             c2.button("로그아웃", key="home_logout", use_container_width=True, on_click=lambda: ss.pop("user", None))
-            with st.expander("프로필 관리"):
+            with st.expander("프로필 · 결제 설정"):
                 with st.form("profile", border=False):
+                    st.markdown('<div class="fh">기본 정보</div>', unsafe_allow_html=True)
                     st.text_input("표시 이름", my_nick, key="pf_nick", max_chars=20, help="모집과 정산에 보이는 이름이에요")
+                    st.markdown('<div class="fh">결제 · 정산</div>', unsafe_allow_html=True)
                     st.text_input("토스 아이디", profile.get("toss", ""), key="pf_toss", placeholder="toss.me/ 뒤에 오는 아이디")
-                    st.text_input("카카오페이 송금 링크", profile.get("kakao", ""), key="pf_kakao", placeholder="https://qr.kakaopay.com/…")
-                    # 콜백으로 저장 → 화면을 그리기 전에 반영돼서 다시 실행(rerun)할 필요 없음
-                    st.form_submit_button("저장", type="primary", use_container_width=True, on_click=lambda: act(
-                        set_profile, me, ss.pf_nick, ss.pf_toss.strip().removeprefix("toss.me/"), ss.pf_kakao.strip()))
-                st.caption("송금 정보를 저장해 두면 정산할 때 자동으로 채워져요. 무료 서버라 서버가 재시작되면 지워질 수 있어요.")
+                    st.text_input("카카오페이 송금 링크", profile.get("kakao", ""), key="pf_kakao", placeholder="https://qr.kakaopay.com/…",
+                                  help="카카오페이 → 송금 → 송금코드 → 링크 복사")
+                    st.radio("기본 정산 방식", ["메뉴별", "N빵"], key="pf_split", horizontal=True,
+                             index=1 if profile.get("split") == "N빵" else 0, help="내가 방장인 모집의 정산 화면에 먼저 선택돼요")
+                    st.markdown('<div class="fh">내 취향</div>', unsafe_allow_html=True)
+                    a, b = st.columns(2)
+                    a.selectbox("기본 예산", list(BUDGETS), key="pf_budget", index=list(BUDGETS).index(profile.get("budget", "1만원")))
+                    b.selectbox("자주 가는 곳", WHERES, key="pf_where", index=WHERES.index(profile.get("where", "전체")))
+                    st.text_input("못 먹는 재료", profile.get("avoid", ""), key="pf_avoid", max_chars=60, placeholder="예: 해산물, 오이")
+                    st.form_submit_button("저장", type="primary", use_container_width=True, on_click=save_profile)
+                st.caption("저장한 예산·위치·못 먹는 재료는 추천과 고르기에 미리 채워져요. "
+                           "무료 서버라 서버가 재시작되면 지워질 수 있어요.")
         else:
             st.markdown('<div class="card prof"><div class="pf-av off"></div><div><div class="pf-n">로그인이 필요해요</div>'
                         '<div class="pf-s">로그인하면 내 모집과 프로필을 볼 수 있어요</div></div></div>', unsafe_allow_html=True)
@@ -1064,7 +1099,7 @@ def main():
         all_types = sorted({m.get("type") or r["category"] for r in rs for m in r["menus"]} - NOT_MEAL)
         section("조건으로 추천받기", "예산 · 위치 · 싫은 것")
         budget_lbl = chips_radio("예산", list(BUDGETS), key="rec_budget", scroll=True)
-        where = chips_radio("위치", ["전체", "교내", "정문", "후문"], key="rec_where")
+        where = chips_radio("위치", WHERES, key="rec_where")
         no_types = st.multiselect("먹기 싫은 종류", all_types, key="rec_types", label_visibility="collapsed",
                                   placeholder="먹기 싫은 종류 (예: 면류, 돈까스)")
         no_words = st.text_input("빼고 싶은 단어", key="rec_words", label_visibility="collapsed", max_chars=60,
@@ -1142,7 +1177,7 @@ def main():
 
         section("메뉴 찾기", "교내·주변 전체")
         q = st.text_input("검색", placeholder="메뉴나 식당 이름 (예: 돈까스, 쌀국수, 위델가)", label_visibility="collapsed")
-        where = chips_radio("어디서", ["전체", "교내", "정문", "후문"], key="home_where")
+        where = chips_radio("어디서", WHERES, key="home_where")
         lo, hi = st.slider("가격대(원)", 0, 20000, (0, 20000), step=500, key="price1")
         rows = [(r, m) for r, m in filter_menus(rs, lo=lo, hi=hi)
                 if (where == "전체" or (r["where"] == "교내" if where == "교내" else r.get("gate") == where))
@@ -1234,7 +1269,7 @@ def main():
         page_head("고르기", "종류와 예산을 정하면 갈 만한 곳만 추려 드려요")
         ss.setdefault("pk_budget", "1만원")
         cat = chips_radio("종류", ["전체"] + CATS, key="pk_cat", scroll=True)
-        where = chips_radio("위치", ["전체", "교내", "정문", "후문"], key="pk_where")
+        where = chips_radio("위치", WHERES, key="pk_where")
         budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
         lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
         a, b = st.columns([3, 1])
@@ -1356,7 +1391,7 @@ def main():
             if me == host:
                 with st.form(f"pay_{pid}", border=False):
                     mode = st.radio("나누는 방법", ["메뉴별", "N빵"], horizontal=True,
-                                    index=1 if pay.get("mode") == "N빵" else 0)
+                                    index=1 if (pay.get("mode") or profile.get("split")) == "N빵" else 0)
                     total = st.number_input("N빵 총 금액 (0이면 메뉴값 합계)", 0, 1_000_000, pay.get("total") or 0, step=1000)
                     toss = st.text_input("토스 아이디", pay.get("toss") or profile.get("toss", ""), placeholder="toss.me/ 뒤에 오는 아이디")
                     kakao = st.text_input("카카오페이 송금 링크", pay.get("kakao") or profile.get("kakao", ""),
