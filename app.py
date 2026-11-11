@@ -454,6 +454,32 @@ def join_party(s, pid, name, menu="", nick=""):
     return None
 
 
+def set_profile(s, uid, nick, toss="", kakao=""):
+    """내 프로필: 표시 이름 + 정산 때 쓸 송금 정보. 회원번호(uid)별로 state["profiles"]에 보관."""
+    nick = str(nick).strip()[:20]
+    if not nick:
+        return "이름을 적어주세요"
+    if toss and not re.fullmatch(r"[\w.-]{1,30}", toss):
+        return "토스 아이디는 toss.me/ 뒤에 붙는 영문·숫자만 적어주세요"
+    if kakao and not re.fullmatch(r"https://qr\.kakaopay\.com/[A-Za-z0-9]{1,100}", kakao):
+        return "카카오페이 링크는 https://qr.kakaopay.com/… 형식이어야 해요"
+    profiles = s.setdefault("profiles", {})
+    if uid not in profiles and len(profiles) >= 5000:
+        return "지금은 프로필을 더 저장할 수 없어요"
+    profiles[uid] = {"nick": nick, "toss": toss, "kakao": kakao}
+    for p in s["parties"]:  # 이미 낀 모집에도 바뀐 이름 반영
+        for m in p.get("members", []):
+            if isinstance(m, dict) and m["name"] == uid:
+                m["nick"] = nick
+    return None
+
+
+def my_parties(s, uid, day):
+    """오늘 내가 방장이거나 참여한 모집 [(모집, 방장 여부)]"""
+    return [(p, host_of(p) == uid) for p in s["parties"]
+            if p["date"] == day and any(m["name"] == uid for m in members_of(p))]
+
+
 def drop_legacy(s):
     """카카오 로그인 전에 이름만으로 만든 모집(방장이 'k회원번호'가 아님)은 아무도 관리할 수 없어 지움. 지운 개수 반환."""
     old = [p for p in s["parties"] if not re.fullmatch(r"k\d+", str(host_of(p)))]
@@ -718,12 +744,16 @@ p,li{color:var(--sub)}
 .stButton>button:active{transform:scale(.97)}
 .stButton>button[kind="primary"],[data-testid="stFormSubmitButton"]>button{background:var(--brand);color:#fff;border:none}
 .stButton>button[kind="primary"]:hover{color:#fff;background:#E84E15}
+.stLinkButton>a[kind="primary"],[data-testid="stBaseLinkButton-primary"]{background:var(--brand);color:#fff!important;border:none}
+.stLinkButton>a[kind="primary"]:hover,[data-testid="stBaseLinkButton-primary"]:hover{background:#E84E15;color:#fff}
 /* 입력창 */
 .stTextInput input,.stSelectbox [data-baseweb="select"]>div,.stMultiSelect [data-baseweb="select"]>div,.stTimeInput input,.stNumberInput input{border-radius:12px!important;background:#fff}
 [data-testid="stExpander"]{background:#fff;border:none;border-radius:16px}[data-testid="stExpander"] details{border:none}
 [data-testid="stForm"]{background:#fff;border:none;border-radius:16px;padding:1rem}
 /* 카드 */
 .card{background:#fff;border:none;border-radius:16px;padding:16px 18px;margin:6px 0 10px}
+.prof{display:flex;align-items:center;gap:14px}.pf-av{flex:0 0 44px;height:44px;border-radius:50%;background:var(--soft);color:var(--brand);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}.pf-av.off{background:#E5E8EB}
+.pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
 .sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
@@ -866,8 +896,8 @@ def main():
                 ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), os.environ.get("KAKAO_CLIENT_SECRET", ""))
             except Exception:  # 키·Redirect URI 설정 오류, 코드 재사용 등 (자세한 이유는 화면에 안 보여줌)
                 st.error("카카오 로그인에 실패했어요. 잠시 후 다시 해주세요.")
-            ss.nav = PAGES[3]
-            if back:
+            ss.nav = PAGES[3] if back else PAGES[0]
+            if back and back != "g":
                 ss._linked = ss.focus_party = back
         qp.clear()  # 주소창에 인가 코드가 남지 않게
 
@@ -973,6 +1003,19 @@ def main():
                   on_click=lambda: (tray_add(ss.tray, r, m), open_menu(r["name"])))
         c2.link_button("길찾기", route_url(r), use_container_width=True)
 
+    # ---- 로그인 상태 (모든 화면 공용) ----
+    user = ss.get("user")  # 카카오 로그인 → {"id": "k회원번호", "nick": 닉네임}
+    me = user["id"] if user else ""
+    profile = state.get("profiles", {}).get(me, {}) if me else {}
+    my_nick = profile.get("nick") or (user["nick"] if user else "")
+
+    def login_button(party=""):  # party: 돌아올 초대 모집 id, "g"면 같이 먹기 화면, 비우면 홈
+        if not KAKAO_KEY:
+            st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
+        else:
+            st.link_button("카카오로 로그인", kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party)),
+                           type="primary", use_container_width=True)
+
     # ---- 하단 탭바 ----
     with st.container():
         st.markdown('<span class="nav-marker"></span>', unsafe_allow_html=True)
@@ -982,6 +1025,31 @@ def main():
     if page == PAGES[0]:
         n_in = sum(1 for p in places.values() if p[0]["where"] == "교내")
         page_head("오늘 점심 뭐 먹지", f"{now.month}월 {now.day}일 {WEEKDAY[now.weekday()]}요일 · 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳")
+        # ---- 내 프로필 ----
+        if user:
+            mine_today = my_parties(state, me, today())
+            nxt = min((p for p, _ in mine_today if p["time"] >= now_hm), key=lambda p: p["time"], default=None)
+            nxt_txt = (f'{e(nxt["time"])} {e(label(by_name[nxt["place"]]) if nxt["place"] in by_name else nxt["place"])}'
+                       if nxt else "예정된 모집 없음")
+            st.markdown(f'<div class="card prof"><div class="pf-av">{e(my_nick[:1])}</div><div>'
+                        f'<div class="pf-n">{e(my_nick)}</div>'
+                        f'<div class="pf-s">오늘 내 모집 {len(mine_today)}건 · {nxt_txt}</div></div></div>', unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            c1.button("내 모집 보기", use_container_width=True, on_click=go, args=(PAGES[3],), kwargs={"only_mine": True})
+            c2.button("로그아웃", key="home_logout", use_container_width=True, on_click=lambda: ss.pop("user", None))
+            with st.expander("프로필 관리"):
+                with st.form("profile", border=False):
+                    st.text_input("표시 이름", my_nick, key="pf_nick", max_chars=20, help="모집과 정산에 보이는 이름이에요")
+                    st.text_input("토스 아이디", profile.get("toss", ""), key="pf_toss", placeholder="toss.me/ 뒤에 오는 아이디")
+                    st.text_input("카카오페이 송금 링크", profile.get("kakao", ""), key="pf_kakao", placeholder="https://qr.kakaopay.com/…")
+                    # 콜백으로 저장 → 화면을 그리기 전에 반영돼서 다시 실행(rerun)할 필요 없음
+                    st.form_submit_button("저장", type="primary", use_container_width=True, on_click=lambda: act(
+                        set_profile, me, ss.pf_nick, ss.pf_toss.strip().removeprefix("toss.me/"), ss.pf_kakao.strip()))
+                st.caption("송금 정보를 저장해 두면 정산할 때 자동으로 채워져요. 무료 서버라 서버가 재시작되면 지워질 수 있어요.")
+        else:
+            st.markdown('<div class="card prof"><div class="pf-av off"></div><div><div class="pf-n">로그인이 필요해요</div>'
+                        '<div class="pf-s">로그인하면 내 모집과 프로필을 볼 수 있어요</div></div></div>', unsafe_allow_html=True)
+            login_button()
         # ---- 조건 추천: 조건 → 추천 목록 → 메뉴를 누르면 식당·혼잡도 → 결정 / 메뉴판 / 같이 먹기 ----
         for k in REC_KEYS:  # 다른 탭 다녀와도 조건 유지
             if k not in ss and "_" + k in ss:
@@ -1197,15 +1265,6 @@ def main():
     # =============== 👫 같이 먹기 ===============
     else:
         page_head("같이 먹기", f"점심 같이 먹을 사람을 구해요 · {now_hm} 기준")
-        user = ss.get("user")  # 카카오 로그인 → {"id": "k회원번호", "nick": 닉네임}
-        me, my_nick = (user["id"], user["nick"]) if user else ("", "")
-
-        def login_button(party=""):
-            if not KAKAO_KEY:
-                st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
-            else:
-                st.link_button("카카오로 로그인", kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party)),
-                               type="primary", use_container_width=True)
 
         # 초대 링크로 들어왔고 아직 안 낀 모집이면: 배민 함께주문처럼 로그인 → 메뉴만 고르면 참여
         inv = find_party(state, ss.get("_linked") or "")
@@ -1237,7 +1296,7 @@ def main():
             b.button("로그아웃", on_click=lambda: ss.pop("user", None), use_container_width=True)
         elif not inv:
             st.caption("카카오로 로그인해야 모집하거나 참여할 수 있어요. (새로고침하면 다시 로그인해야 해요)")
-            login_button()
+            login_button("g")
         my_menu = st.text_input("내가 먹을 메뉴 (선택)", key="my_menu", max_chars=40, placeholder="예: 숑숑카츠").strip()
 
         today_parties = sorted((p for p in state["parties"] if p["date"] == today()), key=lambda p: p["time"])
@@ -1293,8 +1352,8 @@ def main():
                     mode = st.radio("나누는 방법", ["메뉴별", "N빵"], horizontal=True,
                                     index=1 if pay.get("mode") == "N빵" else 0)
                     total = st.number_input("N빵 총 금액 (0이면 메뉴값 합계)", 0, 1_000_000, pay.get("total") or 0, step=1000)
-                    toss = st.text_input("토스 아이디", pay.get("toss", ""), placeholder="toss.me/ 뒤에 오는 아이디")
-                    kakao = st.text_input("카카오페이 송금 링크", pay.get("kakao", ""),
+                    toss = st.text_input("토스 아이디", pay.get("toss") or profile.get("toss", ""), placeholder="toss.me/ 뒤에 오는 아이디")
+                    kakao = st.text_input("카카오페이 송금 링크", pay.get("kakao") or profile.get("kakao", ""),
                                           placeholder="카카오페이 → 송금 → 송금코드 → 링크 복사")
                     if st.form_submit_button("정산 정보 저장", use_container_width=True):
                         act(set_pay, pid, me, toss.strip().removeprefix("toss.me/"), kakao.strip(), mode, int(total) or None)

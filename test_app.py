@@ -273,4 +273,12 @@ assert app.nick_of({"members": [{"name": "k1", "nick": "동근", "menu": ""}]}, 
 s5 = {"parties": [{"id": "a", "host": "이동근", "members": [{"name": "이동근", "menu": ""}]},
                   {"id": "b", "host": "k123", "members": [{"name": "k123", "nick": "동근", "menu": ""}]}]}
 assert app.drop_legacy(s5) == 1 and [p["id"] for p in s5["parties"]] == ["b"]  # 로그인 전 모집만 지움
+# 내 프로필
+s6 = {"parties": []}
+app.add_party(s6, "p6", "k7", "x", "12:00", nick="카톡닉", day="2026-11-11")
+assert app.set_profile(s6, "k7", "  ") == "이름을 적어주세요"
+assert app.set_profile(s6, "k7", "동근", toss="bad id!") and app.set_profile(s6, "k7", "동근", kakao="http://evil.com")
+assert app.set_profile(s6, "k7", "동근" * 20, toss="dong") is None and s6["profiles"]["k7"]["nick"] == ("동근" * 20)[:20]
+assert s6["parties"][0]["members"][0]["nick"] == ("동근" * 20)[:20]  # 이미 낀 모집 이름도 바뀜
+assert app.my_parties(s6, "k7", "2026-11-11") == [(s6["parties"][0], True)] and app.my_parties(s6, "k8", "2026-11-11") == []
 print("ok")
