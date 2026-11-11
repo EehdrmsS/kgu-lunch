@@ -794,6 +794,10 @@ p,li{color:var(--sub)}
   border-radius:16px;padding:13px 18px;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .traybar b{color:#FFB38A;font-size:14px}
 /* 추천 목록 줄 */
+/* 새 Streamlit은 버튼 글자를 div·span으로 감싸 가운데 정렬함 → 목록·메뉴 카드는 왼쪽 정렬로 */
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button>div,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button>div>span{justify-content:flex-start;width:100%}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button>div,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button>div>span{justify-content:flex-start;width:100%}
+
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button{width:100%;display:block;text-align:left;
   border-radius:16px;padding:14px 16px;margin-bottom:-8px;background:#fff}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button p{margin:0;font-size:12px;color:var(--muted);white-space:normal}
