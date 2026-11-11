@@ -1102,7 +1102,9 @@ def main():
     # 처음 실행엔 None이고, 컴포넌트가 쿠키를 읽어 보내면 한 번 더 실행됨.
     # cookie_set: None이면 그대로 두기, 값이면 굽기, ""이면 지우기
     try:
-        cookie_val = cookie_bridge(name=LOGIN_COOKIE, set=ss.get("cookie_set"), age=LOGIN_DAYS * 86400,
+        # 굽기/지우기는 한 번만 보냄: 세션에 남겨 두면 그 탭이 다시 실행될 때마다(배포·재연결)
+        # 다른 탭에서 새로 로그인한 쿠키까지 지워 버림
+        cookie_val = cookie_bridge(name=LOGIN_COOKIE, set=ss.pop("cookie_set", None), age=LOGIN_DAYS * 86400,
                                    key="cookie_bridge", default=None)
     except Exception:  # shortcut: 로컬 Anaconda엔 컴포넌트에 필요한 pyarrow가 없어 로그인 유지만 건너뜀 (배포 서버엔 있음)
         cookie_val = None
