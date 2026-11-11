@@ -1,0 +1,26 @@
+# 푸시·PR마다 테스트 3종(로직·저장소·화면 흐름)을 서버와 같은 Streamlit 버전으로 실행
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt "pyarrow<25"
+      - name: 테스트
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python test_app.py
+          python test_store.py
+          python test_ui.py
