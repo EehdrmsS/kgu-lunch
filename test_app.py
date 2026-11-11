@@ -298,4 +298,13 @@ app.add_party(s7, "q", "k1", "x", "12:00", day="2026-11-11"); app.join_party(s7,
 app.add_party(s7, "r", "k1", "x", "13:00", day="2026-11-11")
 assert app.delete_me(s7, "k1") is None and list(s7["profiles"]) == ["k2"] and s7["counted"]["2026-11-11"] == ["k2|X"]
 assert [(p["id"], app.host_of(p)) for p in s7["parties"]] == [("q", "k2")]  # 혼자였던 모집은 사라지고 방장은 넘어감
+# 로그인 유지 쿠키
+tok = app.make_login_token("k42", "동근", now=1000)
+assert app.read_login_token(tok, now=1000 + 86400 * 7 - 1) == {"id": "k42", "nick": "동근"}
+assert app.read_login_token(tok, now=1000 + 86400 * 7 + 1) is None  # 7일 지나면 만료
+body, sig = tok.rsplit(".", 1)
+forged = app.base64.urlsafe_b64encode(app.json.dumps({"id": "k1", "nick": "x", "exp": 10**12}).encode()).decode().rstrip("=")
+assert app.read_login_token(forged + "." + sig, now=1000) is None  # 남의 회원번호로 바꾸면 서명 불일치
+assert all(app.read_login_token(x, now=1000) is None for x in ("", "garbage", "a.b", None, tok + "x"))
+assert app.make_login_token("k42", "동근", now=1000) == tok and "." in tok
 print("ok")

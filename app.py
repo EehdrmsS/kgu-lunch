@@ -1,4 +1,5 @@
 """경기대 수원캠퍼스 점심 추천기.  실행: streamlit run app.py --server.address 0.0.0.0"""
+import base64
 import datetime
 import hmac
 import json
@@ -684,14 +685,15 @@ def _local_secret(env, file):  # 배포 서버는 Streamlit Secrets(환경변수
 KAKAO_KEY = _local_secret("KAKAO_REST_KEY", ".kakao_key")
 KAKAO_SECRET = _local_secret("KAKAO_CLIENT_SECRET", ".kakao_secret")
 def _app_secret():
-    """로그인 state 서명 키. Streamlit은 화면을 누를 때마다 이 파일을 다시 실행하므로 매번 새로 만들면 안 됨
-    → APP_SECRET 환경변수, 없으면 처음 한 번 만들어 .app_secret 파일(업로드 금지)에 보관."""
+    """로그인 서명 키 (카카오 로그인 state, 로그인 유지 쿠키). 매번 새로 만들면 서명이 안 맞으니 한 번 만들어 보관:
+    APP_SECRET 환경변수 → 없으면 저장소(배포: Supabase, 로컬: state.json)에 처음 한 번 만들어 둠.
+    DB에 두면 서버가 재시작돼도 같은 키라 로그인 유지 쿠키가 계속 유효함."""
     if os.environ.get("APP_SECRET"):
         return os.environ["APP_SECRET"].encode()
-    f = DIR / ".app_secret"
-    if not f.exists():
-        f.write_text(secrets.token_hex(32), "utf-8")
-    return f.read_text("utf-8").strip().encode()
+    s = store.load(STATE_FILE)
+    if not s.get("_secret"):
+        s = store.update(STATE_FILE, lambda s: s.setdefault("_secret", secrets.token_hex(32)))
+    return s["_secret"].encode()
 
 
 SECRET = _app_secret()
@@ -719,6 +721,30 @@ def check_state(state, now=None, max_age=1800):
     if not hmac.compare_digest(sig, good) or not ts.isdigit() or (now or epoch()) - int(ts) > max_age:
         return None
     return party if re.fullmatch(r"[0-9a-z]{0,12}", party) else None
+
+
+LOGIN_COOKIE, LOGIN_DAYS = "kgu_login", 7
+
+
+def make_login_token(uid, nick, now=None, days=LOGIN_DAYS):
+    """로그인 유지 쿠키 값: base64(회원번호·닉네임·만료시각) + 서명. 비밀번호·카카오 토큰은 넣지 않음."""
+    body = base64.urlsafe_b64encode(json.dumps({"id": uid, "nick": nick, "exp": int((now or epoch()) + days * 86400)},
+                                               ensure_ascii=False).encode()).decode().rstrip("=")
+    return body + "." + hmac.new(SECRET, body.encode(), "sha256").hexdigest()[:40]
+
+
+def read_login_token(tok, now=None):
+    """서명이 맞고 안 지났으면 {'id', 'nick'}, 아니면 None (위조·만료·깨진 값)."""
+    try:
+        body, sig = str(tok).rsplit(".", 1)
+        if not hmac.compare_digest(sig, hmac.new(SECRET, body.encode(), "sha256").hexdigest()[:40]):
+            return None
+        d = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    except (ValueError, TypeError):
+        return None
+    if not re.fullmatch(r"k\d+", str(d.get("id"))) or d.get("exp", 0) < (now or epoch()):
+        return None
+    return {"id": d["id"], "nick": str(d.get("nick") or "친구")[:20]}
 
 
 def kakao_auth_url(key, redirect, state):
@@ -791,6 +817,7 @@ p,li{color:var(--sub)}
 .prof{display:flex;align-items:center;gap:14px}.pf-av{flex:0 0 44px;height:44px;border-radius:50%;background:var(--soft);color:var(--brand);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}.pf-av.off{background:#E5E8EB}
 .pf-pay{font-size:12px;color:var(--brand);font-weight:600;margin-top:4px}.fh{font-size:13px;font-weight:700;color:var(--sub);margin:6px 0 -6px}
 .pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
+.kbtn{display:block;text-align:center;background:#FEE500;color:#191919!important;text-decoration:none!important;font-weight:600;border-radius:12px;padding:.7rem;margin:2px 0 6px}.kbtn:hover{filter:brightness(.97)}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
 .sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
@@ -931,6 +958,7 @@ def main():
         else:
             try:
                 ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), KAKAO_SECRET)
+                ss._cookie, ss._logged_out = make_login_token(ss.user["id"], ss.user["nick"]), False
             except Exception as ex:  # 키·시크릿·Redirect URI 설정 오류, 코드 재사용 등 → 이유는 서버 로그에만
                 body = ex.read().decode("utf-8", "replace")[:300] if hasattr(ex, "read") else ""
                 print("kakao login failed:", repr(ex), body, flush=True)
@@ -939,6 +967,17 @@ def main():
             if back and back != "g":
                 ss._linked = ss.focus_party = back
         qp.clear()  # 주소창에 인가 코드가 남지 않게
+
+    # 로그인 유지: 새로고침해도 서명된 쿠키로 자동 로그인 (쿠키 읽기는 최신 Streamlit만, 로컬 1.32는 건너뜀)
+    if not ss.get("user") and not ss.get("_logged_out"):
+        u = read_login_token((getattr(ctx, "cookies", None) or {}).get(LOGIN_COOKIE)) if ctx else None
+        if u:
+            ss.user = u
+    if "_cookie" in ss:  # 쿠키 굽기/지우기: 같은 사이트 iframe에서 document.cookie로
+        tok = ss.pop("_cookie")
+        attrs = f"path=/; max-age={LOGIN_DAYS * 86400 if tok else 0}; SameSite=Lax; Secure"
+        components.html(f'<script>try{{(window.parent||window).document.cookie="{LOGIN_COOKIE}={tok}; {attrs}"}}'
+                        f'catch(e){{document.cookie="{LOGIN_COOKIE}={tok}; {attrs}"}}</script>', height=0)
 
     # 초대 링크(?party=아이디)로 들어오면 그 모집으로 바로 이동
     pid_link = st.query_params.get("party")
@@ -1071,12 +1110,17 @@ def main():
 
     apply_prefs()
 
+    def logout():  # 세션 로그아웃 + 쿠키 삭제. 이번 접속의 쿠키 값은 그대로라 자동 로그인도 막아 둠
+        ss.pop("user", None)
+        ss.pop("_pref_for", None)
+        ss._logged_out, ss._cookie = True, ""
+
     def login_button(party=""):  # party: 돌아올 초대 모집 id, "g"면 같이 먹기 화면, 비우면 홈
         if not KAKAO_KEY:
             st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
-        else:
-            st.link_button("카카오로 로그인", kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party)),
-                           type="primary", use_container_width=True)
+        else:  # 새 탭이 아니라 지금 탭에서 카카오로 이동 (Streamlit 링크 버튼은 항상 새 탭)
+            url = kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party))
+            st.markdown(f'<a class="kbtn" href="{e(url)}" target="_top">카카오로 로그인</a>', unsafe_allow_html=True)
 
     # ---- 하단 탭바 ----
     with st.container():
@@ -1100,7 +1144,7 @@ def main():
                         f'<div class="pf-pay">{pay_txt}</div></div></div>', unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             c1.button("내 모집 보기", use_container_width=True, on_click=go, args=(PAGES[3],), kwargs={"only_mine": True})
-            c2.button("로그아웃", key="home_logout", use_container_width=True, on_click=lambda: ss.pop("user", None))
+            c2.button("로그아웃", key="home_logout", use_container_width=True, on_click=logout)
             with st.expander("프로필 · 결제 설정"):
                 with st.form("profile", border=False):
                     st.markdown('<div class="fh">기본 정보</div>', unsafe_allow_html=True)
@@ -1122,7 +1166,7 @@ def main():
                 st.markdown('<div class="fh">내 정보 삭제</div>', unsafe_allow_html=True)
                 sure = st.checkbox("프로필·송금 정보와 참여 중인 모집에서 나를 지울게요 (되돌릴 수 없어요)", key="del_me_sure")
                 st.button("내 정보 삭제하고 로그아웃", disabled=not sure, use_container_width=True,
-                          on_click=lambda: (act(delete_me, me), ss.pop("user", None), ss.pop("_pref_for", None)))
+                          on_click=lambda: (act(delete_me, me), logout()))
                 st.caption("카카오 연결까지 끊으려면 카카오톡 → 설정 → 카카오계정 → 연결된 서비스 관리에서 이 앱을 해제하세요.")
         else:
             st.markdown('<div class="card prof"><div class="pf-av off"></div><div><div class="pf-n">로그인이 필요해요</div>'
@@ -1377,7 +1421,7 @@ def main():
         if user:
             a, b = st.columns([3, 1])
             a.markdown(f'<div style="padding-top:8px"><b>{e(my_nick)}</b>님으로 로그인됨</div>', unsafe_allow_html=True)
-            b.button("로그아웃", on_click=lambda: ss.pop("user", None), use_container_width=True)
+            b.button("로그아웃", on_click=logout, use_container_width=True)
         elif not inv:
             st.caption("카카오로 로그인해야 모집하거나 참여할 수 있어요. (새로고침하면 다시 로그인해야 해요)")
             login_button("g")
