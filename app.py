@@ -802,11 +802,17 @@ p,li{color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:999;
   width:min(720px,100%);background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);
   display:flex;flex-wrap:nowrap;justify-content:space-around;gap:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.05)}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:6px 0;border-radius:12px}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]>*{flex:1;display:flex;min-width:0}  /* 새 Streamlit은 칸마다 div로 한 번 더 감쌈 → 감싼 div도 칸 전체로 */
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:8px 0;border-radius:12px;position:relative;z-index:1;background:none!important;cursor:pointer}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div:first-child,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div>div:first-child:not([data-testid]){display:none}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted)}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted);transition:color .25s}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked) p{color:var(--brand);font-weight:800}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked){background:var(--soft)}
+/* 선택 표시: 탭바 위 한 장의 하이라이트가 고른 칸으로 미끄러져 감 (탭 4개 기준) */
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]::before{content:"";position:absolute;left:6px;top:8px;bottom:calc(8px + env(safe-area-inset-bottom));width:calc((100% - 12px) / 4);
+  border-radius:12px;background:var(--soft);box-shadow:inset 0 0 0 1px rgba(255,90,31,.18);transition:transform .38s cubic-bezier(.34,1.3,.5,1)}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]:has(>:nth-child(2) input:checked)::before{transform:translateX(100%)}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]:has(>:nth-child(3) input:checked)::before{transform:translateX(200%)}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]:has(>:nth-child(4) input:checked)::before{transform:translateX(300%)}
 /* 칩 모양 라디오 (매장·종류 고르기) */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"]{gap:6px;flex-wrap:wrap}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin:0}
