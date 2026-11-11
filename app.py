@@ -223,6 +223,8 @@ def add_visit(name, when=None, uid=None):
             return res.append(False)
         if uid:
             s["counted"] = {day: seen + [key]}  # 오늘 것만 남김
+            meals = s.setdefault("meals", {})
+            meals[uid] = (meals.get(uid, []) + [{"d": day, "r": name}])[-60:]  # 내 식사 기록 (최근 60끼)
         s["visits"][name] = s["visits"].get(name, 0) + 1
         s["log"] = (s.get("log", []) + [{"t": t, "r": name}])[-3000:]
         res.append(True)
@@ -484,9 +486,39 @@ def set_profile(s, uid, nick, toss="", kakao="", split="메뉴별", budget="1만
     return None
 
 
+def recent_places(s, uid, day, days=3):
+    """최근 n일(오늘 포함) 안에 내가 결정한 식당 이름들."""
+    since = (datetime.date.fromisoformat(day) - datetime.timedelta(days=days - 1)).isoformat()
+    return {m["r"] for m in s.get("meals", {}).get(uid, []) if m["d"] >= since}
+
+
+def meal_summary(s, uid, day):
+    """홈 프로필용: (이번 주 결정 횟수, 최근 간 곳 최대 3개 최신순)"""
+    d = datetime.date.fromisoformat(day)
+    monday = (d - datetime.timedelta(days=d.weekday())).isoformat()
+    ms = s.get("meals", {}).get(uid, [])
+    recent = list(dict.fromkeys(m["r"] for m in reversed(ms)))[:3]
+    return sum(m["d"] >= monday for m in ms), recent
+
+
+def mark_paid(s, pid, host_uid, member, paid=True):
+    """방장이 '송금 받음' 표시. 방장만, 모집에 있는 다른 사람만."""
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != host_uid:
+        return "방장만 표시할 수 있어요"
+    if member == host_uid or not any(m["name"] == member for m in members_of(p)):
+        return "모집에 없는 사람이에요"
+    done = [x for x in p.get("paid", []) if x != member]
+    p["paid"] = done + [member] if paid else done
+    return None
+
+
 def delete_me(s, uid):
     """내 정보 삭제: 프로필·송금 정보, 참여 중인 모집(방장이면 다음 사람에게 넘김), 오늘 결정 기록에서 회원번호 제거."""
     s.get("profiles", {}).pop(uid, None)
+    s.get("meals", {}).pop(uid, None)
     for p in [p for p in s["parties"] if any(m["name"] == uid for m in members_of(p))]:
         leave_party(s, p["id"], uid)
     s["counted"] = {d: [k for k in v if not k.startswith(uid + "|")] for d, v in s.get("counted", {}).items()}
@@ -919,7 +951,7 @@ p,li{color:var(--sub)}
   .stButton>button,.stLinkButton>a{padding:.5rem .4rem;font-size:13px}
   [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button p{font-size:13px}}
 .settle{margin:4px 0 10px}.settle div{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
-.settle div:last-child{border-bottom:none}.settle em{font-style:normal;font-size:11px;color:var(--brand);font-weight:700;margin-left:6px}
+.settle div:last-child{border-bottom:none}.settle em.ok{color:#12B76A}.settle em{font-style:normal;font-size:11px;color:var(--brand);font-weight:700;margin-left:6px}
 /* 휴대폰: 터치 영역 넉넉히, 입력창 16px(아이폰 자동 확대 방지), 하단 탭바에 가리지 않게 */
 @media (max-width:640px){.block-container{padding:.4rem .75rem 8rem}
   .stButton>button,.stLinkButton>a,[data-testid="stFormSubmitButton"]>button{min-height:44px}
@@ -1139,12 +1171,16 @@ def main():
         if user:
             mine_today = my_parties(state, me, today())
             nxt = min((p for p, _ in mine_today if p["time"] >= now_hm), key=lambda p: p["time"], default=None)
+            n_week, recent = meal_summary(state, me, today())
+            meal_txt = (f'이번 주 {n_week}번 결정 · 최근 {e(", ".join(label(by_name[r]) if r in by_name else r for r in recent))}'
+                        if recent else "아직 결정한 식당이 없어요")
             pay_txt = " · ".join(n + " 연결됨" for n, k in (("토스", "toss"), ("카카오페이", "kakao")) if profile.get(k)) or "송금 정보 없음"
             nxt_txt = (f'{e(nxt["time"])} {e(label(by_name[nxt["place"]]) if nxt["place"] in by_name else nxt["place"])}'
                        if nxt else "예정된 모집 없음")
             st.markdown(f'<div class="card prof"><div class="pf-av">{e(my_nick[:1])}</div><div>'
                         f'<div class="pf-n">{e(my_nick)}</div>'
                         f'<div class="pf-s">오늘 내 모집 {len(mine_today)}건 · {nxt_txt}</div>'
+                        f'<div class="pf-s">{meal_txt}</div>'
                         f'<div class="pf-pay">{pay_txt}</div></div></div>', unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             c1.button("내 모집 보기", use_container_width=True, on_click=go, args=(PAGES[3],), kwargs={"only_mine": True})
@@ -1357,6 +1393,9 @@ def main():
         where = chips_radio("위치", WHERES, key="pk_where")
         budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
         lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
+        ate = recent_places(state, me, today()) if me else set()
+        if ate and st.toggle(f"최근 3일 간 곳 빼기 ({len(ate)}곳)", key="pk_fresh"):
+            lst = [(r, ms) for r, ms in lst if r["name"] not in ate]
         if ss.get("pk_filter") != (cat, where, budget_lbl):  # 조건 바뀌면 다시 20곳부터
             ss.pk_filter, ss.pk_n = (cat, where, budget_lbl), 20
         a, b = st.columns([3, 1])
@@ -1490,9 +1529,20 @@ def main():
                     if st.form_submit_button("정산 정보 저장", use_container_width=True):
                         act(set_pay, pid, me, toss.strip().removeprefix("toss.me/"), kakao.strip(), mode, int(total) or None)
                         st.rerun()
-            st.markdown('<div class="settle">' + "".join(
-                f'<div><span>{e(nick_of(p, n))}{" <em>받는 사람</em>" if n == host else ""}</span>'
+            paid = set(p.get("paid", []))
+            payers = [n for n, _ in rows if n != host]
+            st.markdown(f'<div class="s">송금 완료 {sum(n in paid for n in payers)}/{len(payers)}명</div><div class="settle">' + "".join(
+                f'<div><span>{e(nick_of(p, n))}{" <em>받는 사람</em>" if n == host else ""}'
+                f'{" <em class=ok>송금 완료</em>" if n in paid else ""}</span>'
                 f'<b>{won(v) if v is not None else "금액 미정"}</b></div>' for n, v in rows) + "</div>", unsafe_allow_html=True)
+            if me == host and payers:  # 방장: 받은 사람 체크
+                for n in payers:
+                    k = f"paid_{pid}_{n}"
+                    st.checkbox(f"{nick_of(p, n)} 송금 받음", value=n in paid, key=k,
+                                on_change=lambda n=n, k=k: act(mark_paid, pid, me, n, ss[k]))
+            elif me in paid:
+                st.caption("방장이 송금 완료로 표시했어요.")
+                return
             if not pay_links(pay):
                 st.caption("방장이 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
                 return

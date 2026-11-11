@@ -35,6 +35,17 @@ assert "동근" in md, md[:300]
 # 로그아웃 상태: 로그인 안내 카드
 at2 = AppTest.from_file("app.py", default_timeout=60); at2.run()
 assert not at2.exception and "로그인이 필요해요" in " ".join(m.value for m in at2.markdown)
+# 고르기에서 결정 → 홈 프로필에 식사 기록, 고르기에 '최근 간 곳 빼기'
+at.radio(key="nav").set_value("고르기"); at.run()
+first = next(b for b in at.button if b.key and b.key.startswith("pk|"))
+place = first.key[3:]
+first.click(); at.run()
+next(b for b in at.button if b.key == f"pk_ok|{place}").click(); at.run()
+assert not at.exception, at.exception
+assert any(x.label.startswith("최근 3일 간 곳 빼기") for x in at.toggle)
+at.radio(key="nav").set_value("홈"); at.run()
+assert "이번 주 1번 결정" in " ".join(m.value for m in at.markdown)
+
 # 내 정보 삭제: 체크해야 버튼이 눌리고, 누르면 프로필 삭제 + 로그아웃
 next(x for x in at.checkbox if x.key == "del_me_sure").check()
 at.run()

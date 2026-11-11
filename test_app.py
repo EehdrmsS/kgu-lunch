@@ -307,4 +307,21 @@ forged = app.base64.urlsafe_b64encode(app.json.dumps({"id": "k1", "nick": "x", "
 assert app.read_login_token(forged + "." + sig, now=1000) is None  # 남의 회원번호로 바꾸면 서명 불일치
 assert all(app.read_login_token(x, now=1000) is None for x in ("", "garbage", "a.b", None, tok + "x"))
 assert app.make_login_token("k42", "동근", now=1000) == tok and "." in tok
+# 정산 완료 체크
+s8 = {"parties": []}
+app.add_party(s8, "z", "k1", "x", "12:00", day="2026-11-12"); app.join_party(s8, "z", "k2"); app.join_party(s8, "z", "k3")
+assert app.mark_paid(s8, "z", "k2", "k3") == "방장만 표시할 수 있어요"
+assert app.mark_paid(s8, "z", "k1", "k1") == app.mark_paid(s8, "z", "k1", "k9") == "모집에 없는 사람이에요"
+assert app.mark_paid(s8, "z", "k1", "k2") is None and app.mark_paid(s8, "z", "k1", "k2") is None and s8["parties"][0]["paid"] == ["k2"]
+assert app.mark_paid(s8, "z", "k1", "k2", False) is None and s8["parties"][0]["paid"] == []
+# 내 식사 기록 (결정이 집계될 때만)
+import datetime as _d2
+app.STATE_FILE = Path(tempfile.mkdtemp()) / "state.json"
+for day, r in (("2026-11-09", "A"), ("2026-11-10", "B"), ("2026-11-12", "C"), ("2026-11-12", "C")):
+    app.add_visit(r, when=_d2.datetime.fromisoformat(day + "T12:00"), uid="k5")
+st9 = app.load_state()
+assert [m["r"] for m in st9["meals"]["k5"]] == ["A", "B", "C"]  # 같은 날 같은 곳은 한 번
+assert app.recent_places(st9, "k5", "2026-11-12") == {"B", "C"} and app.recent_places(st9, "k6", "2026-11-12") == set()
+assert app.meal_summary(st9, "k5", "2026-11-12") == (3, ["C", "B", "A"])  # 11/9(월)부터 이번 주
+app.delete_me(st9, "k5"); assert "k5" not in st9["meals"]
 print("ok")
