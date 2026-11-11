@@ -2346,23 +2346,6 @@
    ]
   },
   {
-   "name": "동틈 경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "일식·아시안",
-   "lat": 37.2998728423404,
-   "lng": 127.041814373809,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/551665381",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
    "name": "이담",
    "where": "주변",
    "gate": "후문",
@@ -2375,6 +2358,23 @@
    "menus": [
     {
      "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "동틈 경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "일식·아시안",
+   "lat": 37.2998728423404,
+   "lng": 127.041814373809,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/551665381",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -2790,7 +2790,7 @@
   "restaurant": "감성코어",
   "start": "2026-11-09",
   "end": "2026-11-14",
-  "pdf": "https://www.kyonggi.ac.kr/data/WAS_DATA/cmmAtchmnfl/TnRstrntMenu/20261106/20261106010930689_N7Zv.pdf",
+  "pdf": "https://www.kyonggi.ac.kr/data/WAS_DATA/cmmAtchmnfl/TnRstrntMenu/20261111/20261111010729923_6Tu0.pdf",
   "days": {
    "2026-11-09": [
     "쌀밥",
@@ -2821,12 +2821,11 @@
     "김치찌개",
     "투움바파스타",
     "미니돈까스",
-    "코우슬로샐러드",
+    "마카로니샐러드",
     "배추김치"
    ],
    "2026-11-13": [
     "쌀밥",
-    "콩나물밥(양념장)",
     "된장국",
     "춘천닭갈비",
     "막국수",
@@ -2834,7 +2833,7 @@
     "배추김치"
    ]
   },
-  "fetched": "2026-11-10"
+  "fetched": "2026-11-11"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -2980,6 +2979,6 @@
     ]
    }
   },
-  "fetched": "2026-11-10"
+  "fetched": "2026-11-11"
  }
 }

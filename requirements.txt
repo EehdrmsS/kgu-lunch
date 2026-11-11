@@ -1,2 +1,2 @@
-﻿streamlit>=1.32
+streamlit==1.67.0  # 배포 서버 버전 고정: 새 버전이 화면 구조를 바꿔 CSS가 깨지는 걸 막음
 pypdf

@@ -83,6 +83,8 @@ assert dorm["2026-11-10"]["점심"][:3] == ["쌀밥", "호박수제비국", "숯
 app.STATE_FILE = Path(tempfile.mkdtemp()) / "state.json"
 app.add_visit("A"); app.add_visit("A")
 assert app.load_state()["visits"]["A"] == 2
+assert app.add_visit("C", uid="k1") is True and app.add_visit("C", uid="k1") is False  # 같은 사람 하루 1번
+assert app.add_visit("C", uid="k2") is True and app.load_state()["visits"]["C"] == 2
 
 # 같이 먹기 모집: 정원·마감·나가기·방장 넘기기·옛 형식
 s = {"parties": [], "visits": {}}
@@ -272,7 +274,11 @@ assert s4["parties"][-1]["max"] == 8 and len(s4["parties"][-1]["members"][0]["me
 assert app.nick_of({"members": [{"name": "k1", "nick": "동근", "menu": ""}]}, "k1") == "동근"
 s5 = {"parties": [{"id": "a", "host": "이동근", "members": [{"name": "이동근", "menu": ""}]},
                   {"id": "b", "host": "k123", "members": [{"name": "k123", "nick": "동근", "menu": ""}]}]}
-assert app.drop_legacy(s5) == 1 and [p["id"] for p in s5["parties"]] == ["b"]  # 로그인 전 모집만 지움
+for p in s5["parties"]:
+    p["date"] = "2026-11-11"
+s5["parties"].append({"id": "c", "date": "2026-11-03", "host": "k9", "members": [{"name": "k9", "menu": ""}]})
+s5["parties"].append({"id": "d", "date": "2026-11-04", "host": "k9", "members": [{"name": "k9", "menu": ""}]})
+assert app.drop_legacy(s5, "2026-11-11") == 2 and [p["id"] for p in s5["parties"]] == ["b", "d"]  # 로그인 전 + 7일 지난 것
 # 내 프로필
 s6 = {"parties": []}
 app.add_party(s6, "p6", "k7", "x", "12:00", nick="카톡닉", day="2026-11-11")
@@ -286,4 +292,10 @@ assert app.set_profile(s6, "k7", "동근", budget="100만원") and app.set_profi
 assert app.set_profile(s6, "k7", "동근", "dong", "", "N빵", "8천원", "정문", "  해산물, 매운  ") is None
 assert s6["profiles"]["k7"] == {"nick": "동근", "toss": "dong", "kakao": "", "split": "N빵",
                                 "budget": "8천원", "where": "정문", "avoid": "해산물, 매운"}
+assert [app.mask(x) for x in ("이동근", "민수", "김", "Dongeun")] == ["이*근", "민*", "김", "D*****n"]
+s7 = {"parties": [], "profiles": {"k1": {"nick": "a"}, "k2": {"nick": "b"}}, "counted": {"2026-11-11": ["k1|X", "k2|X"]}}
+app.add_party(s7, "q", "k1", "x", "12:00", day="2026-11-11"); app.join_party(s7, "q", "k2")
+app.add_party(s7, "r", "k1", "x", "13:00", day="2026-11-11")
+assert app.delete_me(s7, "k1") is None and list(s7["profiles"]) == ["k2"] and s7["counted"]["2026-11-11"] == ["k2|X"]
+assert [(p["id"], app.host_of(p)) for p in s7["parties"]] == [("q", "k2")]  # 혼자였던 모집은 사라지고 방장은 넘어감
 print("ok")

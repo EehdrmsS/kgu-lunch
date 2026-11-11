@@ -214,14 +214,23 @@ def update_state(fn):
         return s
 
 
-def add_visit(name, when=None):
-    """이용객 수 +1, 그리고 혼잡도 추정용으로 '언제 어디로 결정했는지' 기록 (최근 3000건만)."""
+def add_visit(name, when=None, uid=None):
+    """이용객 수 +1, 그리고 혼잡도 추정용으로 '언제 어디로 결정했는지' 기록 (최근 3000건만).
+    uid를 주면 같은 사람·같은 식당은 하루 1번만 셈 (버튼 연타로 순위·혼잡도 조작 방지). 셌으면 True."""
     t = (when or now_kst()).isoformat(timespec="minutes")
+    day, key, res = t[:10], f"{uid}|{name}", []
 
     def fn(s):
+        seen = s.get("counted", {}).get(day, [])
+        if uid and key in seen:
+            return res.append(False)
+        if uid:
+            s["counted"] = {day: seen + [key]}  # 오늘 것만 남김
         s["visits"][name] = s["visits"].get(name, 0) + 1
         s["log"] = (s.get("log", []) + [{"t": t, "r": name}])[-3000:]
+        res.append(True)
     update_state(fn)
+    return res[0]
 
 
 # ---------- 혼잡도 추정 (실제 키오스크 데이터가 아니라 시간대 + 이 앱 사용 기록 기준) ----------
@@ -478,18 +487,40 @@ def set_profile(s, uid, nick, toss="", kakao="", split="메뉴별", budget="1만
     return None
 
 
+def delete_me(s, uid):
+    """내 정보 삭제: 프로필·송금 정보, 참여 중인 모집(방장이면 다음 사람에게 넘김), 오늘 결정 기록에서 회원번호 제거."""
+    s.get("profiles", {}).pop(uid, None)
+    for p in [p for p in s["parties"] if any(m["name"] == uid for m in members_of(p))]:
+        leave_party(s, p["id"], uid)
+    s["counted"] = {d: [k for k in v if not k.startswith(uid + "|")] for d, v in s.get("counted", {}).items()}
+    return None
+
+
 def my_parties(s, uid, day):
     """오늘 내가 방장이거나 참여한 모집 [(모집, 방장 여부)]"""
     return [(p, host_of(p) == uid) for p in s["parties"]
             if p["date"] == day and any(m["name"] == uid for m in members_of(p))]
 
 
-def drop_legacy(s):
-    """카카오 로그인 전에 이름만으로 만든 모집(방장이 'k회원번호'가 아님)은 아무도 관리할 수 없어 지움. 지운 개수 반환."""
-    old = [p for p in s["parties"] if not re.fullmatch(r"k\d+", str(host_of(p)))]
+def stale(p, day, keep_days=7):
+    """지울 모집: 카카오 로그인 전 방식(방장이 'k회원번호'가 아님 → 아무도 관리 못 함) 또는 7일 지난 모집."""
+    old_day = (datetime.date.fromisoformat(day) - datetime.timedelta(days=keep_days)).isoformat()
+    return not re.fullmatch(r"k\d+", str(host_of(p))) or str(p.get("date", "")) < old_day
+
+
+def drop_legacy(s, day=None):
+    """stale한 모집을 지움 (저장 파일이 끝없이 커지지 않게). 지운 개수 반환."""
+    day = day or today()
+    old = [p for p in s["parties"] if stale(p, day)]
     for p in old:
         s["parties"].remove(p)
     return len(old)
+
+
+def mask(nick):
+    """로그인 안 한 사람에게 보일 이름: '이동근' → '이*근', '민수' → '민*'."""
+    nick = str(nick)
+    return nick if len(nick) < 2 else nick[0] + "*" * (len(nick) - 2 if len(nick) > 2 else 1) + (nick[-1] if len(nick) > 2 else "")
 
 
 def nick_of(p, name):
@@ -932,7 +963,7 @@ def main():
     by_name = {r["name"]: r for r in rs}
     places = dict(place_groups(sorted(rs, key=lambda r: (r["where"] != "교내", r.get("gate") or "", r.get("court") or "", r["name"]))))
     state = load_state()
-    if any(not re.fullmatch(r"k\d+", str(host_of(p))) for p in state["parties"]):
+    if any(stale(p, today()) for p in state["parties"]):
         state = update_state(drop_legacy)
     visits = state["visits"]
     now = now_kst()
@@ -945,10 +976,12 @@ def main():
             ss[k] = v
 
     def decide(names):
-        for n in dict.fromkeys(names):
-            add_visit(n)
         ss.decided = names[0]
-        st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요")
+        if not me:
+            st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요 · 로그인하면 이용객 수에 반영돼요")
+            return
+        counted = [add_visit(n, uid=me) for n in dict.fromkeys(names)]
+        st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요" + ("" if any(counted) else " · 오늘은 이미 반영됐어요"))
 
     def open_menu(name):  # 그 식당 메뉴판(키오스크)으로
         r = by_name[name]
@@ -1021,6 +1054,9 @@ def main():
     profile = state.get("profiles", {}).get(me, {}) if me else {}
     my_nick = profile.get("nick") or (user["nick"] if user else "")
 
+    def shown(nick):  # 다른 사람 이름은 로그인한 사람에게만 그대로 보임
+        return nick if me else mask(nick)
+
     def apply_prefs(force=False):  # 로그인했거나 프로필을 저장하면 추천·고르기 필터를 내 취향으로
         if profile and (force or ss.get("_pref_for") != me):
             for keys, v in ((("rec_budget", "pk_budget"), profile.get("budget")), (("rec_where", "pk_where"), profile.get("where")),
@@ -1087,6 +1123,11 @@ def main():
                     st.form_submit_button("저장", type="primary", use_container_width=True, on_click=save_profile)
                 st.caption("저장한 예산·위치·못 먹는 재료는 추천과 고르기에 미리 채워져요. "
                            "무료 서버라 서버가 재시작되면 지워질 수 있어요.")
+                st.markdown('<div class="fh">내 정보 삭제</div>', unsafe_allow_html=True)
+                sure = st.checkbox("프로필·송금 정보와 참여 중인 모집에서 나를 지울게요 (되돌릴 수 없어요)", key="del_me_sure")
+                st.button("내 정보 삭제하고 로그아웃", disabled=not sure, use_container_width=True,
+                          on_click=lambda: (act(delete_me, me), ss.pop("user", None), ss.pop("_pref_for", None)))
+                st.caption("카카오 연결까지 끊으려면 카카오톡 → 설정 → 카카오계정 → 연결된 서비스 관리에서 이 앱을 해제하세요.")
         else:
             st.markdown('<div class="card prof"><div class="pf-av off"></div><div><div class="pf-n">로그인이 필요해요</div>'
                         '<div class="pf-s">로그인하면 내 모집과 프로필을 볼 수 있어요</div></div></div>', unsafe_allow_html=True)
@@ -1162,7 +1203,7 @@ def main():
         if open_parties:
             st.markdown('<div class="card">' + "".join(
                 f'<div class="row"><div><div class="n">{e(p["time"])} · {e(label(by_name[p["place"]]) if p["place"] in by_name else p["place"])}</div>'
-                f'<div class="s">{e(", ".join(m.get("nick") or m["name"] for m in members_of(p)))}</div></div>'
+                f'<div class="s">{e(", ".join(shown(m.get("nick") or m["name"]) for m in members_of(p)))}</div></div>'
                 f'<div class="p">{count_text(p)}</div></div>' for p in open_parties[:3]) + "</div>",
                 unsafe_allow_html=True)
         st.button("같이 먹기 보러가기" if open_parties else "내가 먼저 모집하기", use_container_width=True,
@@ -1272,14 +1313,17 @@ def main():
         where = chips_radio("위치", WHERES, key="pk_where")
         budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
         lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
+        if ss.get("pk_filter") != (cat, where, budget_lbl):  # 조건 바뀌면 다시 20곳부터
+            ss.pk_filter, ss.pk_n = (cat, where, budget_lbl), 20
         a, b = st.columns([3, 1])
         a.markdown(f'<div class="sec" style="margin-top:14px">{len(lst)}곳<small>싼 메뉴 순</small></div>', unsafe_allow_html=True)
         if b.button("랜덤", disabled=not lst, use_container_width=True):
-            ss.pk_sel = random.choice(lst)[0]["name"]
+            i = random.randrange(len(lst))
+            ss.pk_sel, ss.pk_n = lst[i][0]["name"], max(ss.pk_n, i + 1)  # 뽑힌 곳이 목록 밖이면 거기까지 펼침
         if not lst:
             st.markdown('<div class="card empty">조건에 맞는 식당이 없어요.<br>예산을 올리거나 위치를 전체로 바꿔보세요.</div>',
                         unsafe_allow_html=True)
-        for r, ms in lst:
+        for r, ms in lst[:ss.pk_n]:
             sel = ss.get("pk_sel") == r["name"]
             top = [m["name"].split(" (")[0] for m in sorted(ms, key=lambda m: m["price"] or 10**9)[:2]]
             with st.container():
@@ -1302,6 +1346,9 @@ def main():
                 c1, c2 = st.columns(2)
                 c1.button("메뉴판", key=f"pk_menu|{r['name']}", use_container_width=True, on_click=open_menu, args=(r["name"],))
                 c2.link_button("길찾기", route_url(r), use_container_width=True)
+        if len(lst) > ss.pk_n:
+            st.button(f"더 보기 ({len(lst) - ss.pk_n}곳 남음)", use_container_width=True,
+                      on_click=lambda: ss.__setitem__("pk_n", ss.pk_n + 20))
 
     # =============== 👫 같이 먹기 ===============
     else:
@@ -1312,7 +1359,7 @@ def main():
         if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == me for m in members_of(inv)):
             ir = by_name.get(inv["place"])
             with st.container(border=True):
-                st.markdown(f'<div class="sec">{e(nick_of(inv, host_of(inv)))}님이 초대했어요<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
+                st.markdown(f'<div class="sec">{e(shown(nick_of(inv, host_of(inv))))}님이 초대했어요<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
                             f'<div class="pl" style="font-weight:700">{e(label(ir) if ir else inv["place"])}</div>'
                             f'<div style="color:#8B95A1;font-size:14px">{e(inv.get("spot") or "식당 앞")}에서 만나요</div>',
                             unsafe_allow_html=True)
@@ -1415,6 +1462,9 @@ def main():
                 st.caption("친구가 휴대폰 카메라로 찍으면 송금 화면이 열려요.")
             else:
                 amt = dict(rows).get(me)
+                if p["time"] > now_hm:  # 송금 정보는 실제로 만날 시간이 지나야 공개 (아무 모집에 끼어 계좌만 보는 것 방지)
+                    st.caption(f"{p['time']} 이후에 송금 버튼이 열려요.")
+                    return
                 for i, (k, url) in enumerate(pay_links(pay, amt).items()):
                     st.link_button(f"{k}로 {won(amt) if amt and k == '토스' else ''} 보내기".replace("  ", " "), url,
                                    type="primary" if i == 0 else "secondary", use_container_width=True)
@@ -1424,6 +1474,10 @@ def main():
         section("오늘 모집", f"{len(today_parties)}건")
         if me and st.toggle("내 모집만 보기", key="only_mine"):
             today_parties = [p for p in today_parties if any(m["name"] == me for m in members_of(p))]
+        # 시간 지난 모집은 숨김. 단 내가 낀 모집은 밥 먹고 정산해야 하니 남김
+        past = [p for p in today_parties if party_status(p, now_hm) == "지난 모집" and not any(m["name"] == me for m in members_of(p))]
+        if past and not st.toggle(f"지난 모집 {len(past)}건도 보기", key="show_past"):
+            today_parties = [p for p in today_parties if p not in past]
         if not today_parties:
             st.markdown('<div class="card" style="text-align:center;color:#8B95A1">아직 모집이 없어요. 첫 모집을 올려보세요.</div>',
                         unsafe_allow_html=True)
@@ -1441,7 +1495,7 @@ def main():
                 f'<span class="chip">{e(r.get("gate") or r["where"]) if r else ""}</span></div>'
                 + (f'<div class="note">{e(p["note"])}</div>' if p.get("note") else "")
                 + '<div class="mem">' + "".join(
-                    f'<span><b>{e(m.get("nick") or m["name"])}</b>{"<em>방장</em>" if m["name"] == host else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
+                    f'<span><b>{e(shown(m.get("nick") or m["name"]))}</b>{"<em>방장</em>" if m["name"] == host else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
                     for m in ms) + "</div>"
                 + (f'<div class="bar"><i style="width:{min(100, 100 * len(ms) // p["max"])}%"></i></div>' if p.get("max") else "")
                 + "</div>",

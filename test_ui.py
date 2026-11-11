@@ -35,4 +35,22 @@ assert "동근" in md, md[:300]
 # 로그아웃 상태: 로그인 안내 카드
 at2 = AppTest.from_file("app.py", default_timeout=60); at2.run()
 assert not at2.exception and "로그인이 필요해요" in " ".join(m.value for m in at2.markdown)
+# 내 정보 삭제: 체크해야 버튼이 눌리고, 누르면 프로필 삭제 + 로그아웃
+next(x for x in at.checkbox if x.key == "del_me_sure").check()
+at.run()
+next(b for b in at.button if b.label == "내 정보 삭제하고 로그아웃").click()
+at.run()
+assert not at.exception, at.exception
+assert "k42" not in json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8")).get("profiles", {})
+assert "user" not in at.session_state and "로그인이 필요해요" in " ".join(m.value for m in at.markdown)
+
+# 고르기: 20곳씩 보여주고 '더 보기'
+at2.radio(key="nav").set_value("고르기")
+at2.run()
+assert not at2.exception, at2.exception
+more = [b for b in at2.button if b.label.startswith("더 보기")]
+assert more and sum(bool(b.key) and b.key.startswith("pk|") for b in at2.button) == 20
+more[0].click()
+at2.run()
+assert sum(bool(b.key) and b.key.startswith("pk|") for b in at2.button) > 20
 print("apptest ok")
