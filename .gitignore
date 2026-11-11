@@ -1,0 +1,6 @@
+﻿# 비밀/개인 데이터는 올리지 않음
+.kakao_key
+.streamlit/secrets.toml
+state.json
+__pycache__/
+.claude/
