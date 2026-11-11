@@ -5,3 +5,4 @@ state.json
 __pycache__/
 .claude/
 .app_secret
+.kakao_secret

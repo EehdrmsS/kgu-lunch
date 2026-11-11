@@ -646,8 +646,12 @@ def share_base(host=None):
 
 
 # ---------- 카카오 로그인 (OAuth): 비밀번호·토큰은 저장 안 하고 카카오 회원번호·닉네임만 씀 ----------
-KAKAO_KEY = os.environ.get("KAKAO_REST_KEY") or (
-    (DIR / ".kakao_key").read_text("utf-8").strip() if (DIR / ".kakao_key").exists() else "")
+def _local_secret(env, file):  # 배포 서버는 Streamlit Secrets(환경변수), 내 컴퓨터는 업로드 안 하는 파일에서
+    return os.environ.get(env) or ((DIR / file).read_text("utf-8").strip() if (DIR / file).exists() else "")
+
+
+KAKAO_KEY = _local_secret("KAKAO_REST_KEY", ".kakao_key")
+KAKAO_SECRET = _local_secret("KAKAO_CLIENT_SECRET", ".kakao_secret")
 def _app_secret():
     """로그인 state 서명 키. Streamlit은 화면을 누를 때마다 이 파일을 다시 실행하므로 매번 새로 만들면 안 됨
     → APP_SECRET 환경변수, 없으면 처음 한 번 만들어 .app_secret 파일(업로드 금지)에 보관."""
@@ -893,8 +897,10 @@ def main():
             st.error("로그인 요청이 만료됐어요. 다시 로그인해 주세요.")
         else:
             try:
-                ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), os.environ.get("KAKAO_CLIENT_SECRET", ""))
-            except Exception:  # 키·Redirect URI 설정 오류, 코드 재사용 등 (자세한 이유는 화면에 안 보여줌)
+                ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), KAKAO_SECRET)
+            except Exception as ex:  # 키·시크릿·Redirect URI 설정 오류, 코드 재사용 등 → 이유는 서버 로그에만
+                body = ex.read().decode("utf-8", "replace")[:300] if hasattr(ex, "read") else ""
+                print("kakao login failed:", repr(ex), body, flush=True)
                 st.error("카카오 로그인에 실패했어요. 잠시 후 다시 해주세요.")
             ss.nav = PAGES[3] if back else PAGES[0]
             if back and back != "g":
