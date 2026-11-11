@@ -454,6 +454,14 @@ def join_party(s, pid, name, menu="", nick=""):
     return None
 
 
+def drop_legacy(s):
+    """카카오 로그인 전에 이름만으로 만든 모집(방장이 'k회원번호'가 아님)은 아무도 관리할 수 없어 지움. 지운 개수 반환."""
+    old = [p for p in s["parties"] if not re.fullmatch(r"k\d+", str(host_of(p)))]
+    for p in old:
+        s["parties"].remove(p)
+    return len(old)
+
+
 def nick_of(p, name):
     """화면에 보일 이름: 로그인 계정 id 대신 카카오 닉네임 (예전 데이터는 이름 그대로)."""
     return next((m.get("nick") or m["name"] for m in members_of(p) if m["name"] == name), name)
@@ -878,6 +886,8 @@ def main():
     by_name = {r["name"]: r for r in rs}
     places = dict(place_groups(sorted(rs, key=lambda r: (r["where"] != "교내", r.get("gate") or "", r.get("court") or "", r["name"]))))
     state = load_state()
+    if any(not re.fullmatch(r"k\d+", str(host_of(p))) for p in state["parties"]):
+        state = update_state(drop_legacy)
     visits = state["visits"]
     now = now_kst()
     now_hm = now.strftime("%H:%M")

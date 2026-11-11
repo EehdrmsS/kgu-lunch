@@ -270,4 +270,7 @@ assert app.add_party(s4, "h9", "k1", "x", "12:00") == f"모집은 하루 {app.MA
 assert app.add_party(s4, "h9", "k2", "x", "12:00", max_n=99, menu="m" * 999) is None
 assert s4["parties"][-1]["max"] == 8 and len(s4["parties"][-1]["members"][0]["menu"]) == 100
 assert app.nick_of({"members": [{"name": "k1", "nick": "동근", "menu": ""}]}, "k1") == "동근"
+s5 = {"parties": [{"id": "a", "host": "이동근", "members": [{"name": "이동근", "menu": ""}]},
+                  {"id": "b", "host": "k123", "members": [{"name": "k123", "nick": "동근", "menu": ""}]}]}
+assert app.drop_legacy(s5) == 1 and [p["id"] for p in s5["parties"]] == ["b"]  # 로그인 전 모집만 지움
 print("ok")
