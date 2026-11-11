@@ -257,7 +257,7 @@ assert app.today() == app.now_kst().date().isoformat()
 # 카카오 로그인 state 서명
 st_ = app.sign_state("ab12cd", now=1000)
 assert app.check_state(st_, now=1100) == "ab12cd" and app.check_state(app.sign_state(now=1000), now=1000) == ""
-assert app.check_state(st_, now=1000 + 601) is None  # 10분 지나면 만료
+assert app.check_state(st_, now=1000 + 1801) is None  # 30분 지나면 만료
 assert app.check_state(st_.replace("ab12cd", "zz99zz"), now=1100) is None  # 모집 id 바꿔치기
 assert app.check_state("garbage", now=1) is None and app.check_state("a.b.c", now=1) is None
 u = app.kakao_auth_url("KEY", "https://x.app", st_)

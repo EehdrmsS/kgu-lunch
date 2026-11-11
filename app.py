@@ -668,7 +668,18 @@ def share_base(host=None):
 # ---------- 카카오 로그인 (OAuth): 비밀번호·토큰은 저장 안 하고 카카오 회원번호·닉네임만 씀 ----------
 KAKAO_KEY = os.environ.get("KAKAO_REST_KEY") or (
     (DIR / ".kakao_key").read_text("utf-8").strip() if (DIR / ".kakao_key").exists() else "")
-SECRET = (os.environ.get("APP_SECRET") or secrets.token_hex(32)).encode()  # 없으면 서버 켤 때마다 새로 만듦
+def _app_secret():
+    """로그인 state 서명 키. Streamlit은 화면을 누를 때마다 이 파일을 다시 실행하므로 매번 새로 만들면 안 됨
+    → APP_SECRET 환경변수, 없으면 처음 한 번 만들어 .app_secret 파일(업로드 금지)에 보관."""
+    if os.environ.get("APP_SECRET"):
+        return os.environ["APP_SECRET"].encode()
+    f = DIR / ".app_secret"
+    if not f.exists():
+        f.write_text(secrets.token_hex(32), "utf-8")
+    return f.read_text("utf-8").strip().encode()
+
+
+SECRET = _app_secret()
 
 
 def login_redirect(host=None):
@@ -683,8 +694,8 @@ def sign_state(party="", now=None):
     return body + "." + hmac.new(SECRET, body.encode(), "sha256").hexdigest()[:32]
 
 
-def check_state(state, now=None, max_age=600):
-    """서명이 맞고 10분 안이면 초대 모집 id(없으면 ''), 아니면 None."""
+def check_state(state, now=None, max_age=1800):
+    """서명이 맞고 30분 안이면 초대 모집 id(없으면 ''), 아니면 None."""
     try:
         party, ts, sig = str(state).rsplit(".", 2)
     except ValueError:
