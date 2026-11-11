@@ -156,7 +156,11 @@ def main():
                           "pdf": SITE + pdf, "days": days, "fetched": today}
         print(f"감성코어 주간메뉴 {start}~{end}: {len(days)}일")
 
-    dorm = parse_dorm(fetch(DORM_PAGE).decode("cp949", "replace"))
+    try:  # 기숙사 사이트는 해외 서버(GitHub Actions)에서 막힐 수 있음 → 실패해도 나머지는 갱신, 기존 식단 유지
+        dorm = parse_dorm(fetch(DORM_PAGE).decode("cp949", "replace"))
+    except OSError as ex:
+        dorm = None
+        print("기숙사 식단 건너뜀:", ex)
     if dorm:
         data["dorm_weekly"] = {"url": DORM_PAGE, "days": dorm, "fetched": datetime.datetime.now(KST).date().isoformat()}
         print(f"기숙사 식단: {len(dorm)}일")
