@@ -1,4 +1,4 @@
-﻿"""data.json 갱신 크롤러.
+"""data.json 갱신 크롤러.
   python crawl.py                      → 경기대 공식 홈페이지에서 교내 식당 운영정보 + 감성코어 주간메뉴(PDF)
   KAKAO_REST_KEY=... python crawl.py   → 위 + 카카오 로컬 API로 정문/후문 반경 500m 음식점 목록
                                          (환경변수 대신 같은 폴더의 .kakao_key 파일에 키만 적어둬도 됨)
@@ -172,7 +172,9 @@ def main():
             for d in kakao_nearby(key, gate["lat"], gate["lng"]):
                 if d["place_name"] not in manual and CAMPUS_ADDR not in d.get("road_address_name", ""):
                     found.setdefault(d["id"], kakao_to_restaurant(d, gate["name"], prices))
-        data["restaurants"] = [r for r in data["restaurants"] if r.get("source") != "kakao"] + list(found.values())
+        # 순서 고정(문 → 이름): 카카오 응답 순서가 조금만 바뀌어도 매일 의미 없는 커밋이 생기지 않게
+        data["restaurants"] = [r for r in data["restaurants"] if r.get("source") != "kakao"] + sorted(
+            found.values(), key=lambda r: (r["gate"], r["name"]))
         print("카카오 주변 음식점:", len(found))
     else:
         print("카카오 키 없음(KAKAO_REST_KEY 또는 .kakao_key) → 주변 음식점 자동 수집 건너뜀")

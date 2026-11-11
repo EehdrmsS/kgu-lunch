@@ -1375,185 +1375,6 @@
    }
   },
   {
-   "name": "다모아 식당",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.3014345406318,
-   "lng": 127.032569709358,
-   "address": "경기 수원시 장안구 광교산로 154-25",
-   "url": "http://place.map.kakao.com/16011434",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "내마음이머무르는곳",
-   "where": "주변",
-   "gate": "정문",
-   "category": "양식",
-   "lat": 37.3014345406318,
-   "lng": 127.032569709358,
-   "address": "경기 수원시 장안구 광교산로 154-25",
-   "url": "http://place.map.kakao.com/18514790",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "한상차림코다리명가 광교산점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.3016166336768,
-   "lng": 127.032264121852,
-   "address": "경기 수원시 장안구 광교산로 164",
-   "url": "http://place.map.kakao.com/1511702901",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "바람난장어",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.301564526281,
-   "lng": 127.0316990126,
-   "address": "경기 수원시 장안구 광교산로 160",
-   "url": "http://place.map.kakao.com/1926008664",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "낭만떡볶이",
-   "where": "주변",
-   "gate": "정문",
-   "category": "분식",
-   "lat": 37.3012797975944,
-   "lng": 127.031703404756,
-   "address": "경기 수원시 장안구 광교산로 154-13",
-   "url": "http://place.map.kakao.com/27549035",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "분식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "양평해장국 남산돈가스 광교점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.3011969540583,
-   "lng": 127.031509369004,
-   "address": "경기 수원시 장안구 광교산로 154-11",
-   "url": "http://place.map.kakao.com/11109732",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "한솥도시락 수원경기대점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "기타",
-   "lat": 37.3001303333003,
-   "lng": 127.030723907911,
-   "address": "경기 수원시 장안구 광교산로 142",
-   "url": "http://place.map.kakao.com/18248430",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "치킨마요",
-     "price": 3900
-    },
-    {
-     "name": "빅치킨마요",
-     "price": 4600
-    },
-    {
-     "name": "돈까스도련님 고기고기",
-     "price": 7000
-    }
-   ],
-   "price_source": "전국 공통가 (기사 2025.8~2026.1), 매장별 다를 수 있음"
-  },
-  {
-   "name": "행복한찹쌀꽈배기 경기대점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "기타",
-   "lat": 37.3001303330075,
-   "lng": 127.030725035808,
-   "address": "경기 수원시 장안구 광교산로 142",
-   "url": "http://place.map.kakao.com/216396415",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "아까세 2호점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "기타",
-   "lat": 37.300125831035,
-   "lng": 127.030712627113,
-   "address": "경기 수원시 장안구 광교산로 142",
-   "url": "http://place.map.kakao.com/319396245",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "코다리 냉면",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.300097022705465,
-   "lng": 127.03061674421879,
-   "address": "경기 수원시 장안구 광교산로 142",
-   "url": "http://place.map.kakao.com/15563570",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
    "name": "감동튀김",
    "where": "주변",
    "gate": "정문",
@@ -1566,40 +1387,6 @@
    "menus": [
     {
      "name": "분식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "끝내주는동태찌개",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.29966909281752,
-   "lng": 127.03037407444212,
-   "address": "경기 수원시 장안구 광교산로138번길 1",
-   "url": "http://place.map.kakao.com/11854437",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "상전",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.2996943697541,
-   "lng": 127.030186854829,
-   "address": "경기 수원시 장안구 광교산로 138",
-   "url": "http://place.map.kakao.com/68300868",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -1622,35 +1409,18 @@
    ]
   },
   {
-   "name": "행복한밥상",
+   "name": "굽네치킨 수원연무점",
    "where": "주변",
    "gate": "정문",
-   "category": "한식",
-   "lat": 37.29950344263308,
-   "lng": 127.02982134301462,
-   "address": "경기 수원시 장안구 창훈로60번길 50",
-   "url": "http://place.map.kakao.com/1384835527",
+   "category": "패스트푸드",
+   "lat": 37.29848437493364,
+   "lng": 127.02980176686057,
+   "address": "경기 수원시 장안구 창훈로60번길 29",
+   "url": "http://place.map.kakao.com/431840180",
    "source": "kakao",
    "menus": [
     {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "명동빈대떡",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.2988221003942,
-   "lng": 127.030443662236,
-   "address": "경기 수원시 장안구 창훈로60번길 28-15",
-   "url": "http://place.map.kakao.com/9031432",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "name": "치킨 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -1694,6 +1464,108 @@
    "price_source": "다이닝코드 (날짜 미상) · 주점"
   },
   {
+   "name": "김가네한식뷔페",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.2989782892998,
+   "lng": 127.02921546437,
+   "address": "경기 수원시 장안구 창훈로66번길 33",
+   "url": "http://place.map.kakao.com/1018284958",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "메뉴 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "끝내주는동태찌개",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.29966909281752,
+   "lng": 127.03037407444212,
+   "address": "경기 수원시 장안구 광교산로138번길 1",
+   "url": "http://place.map.kakao.com/11854437",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "낭만떡볶이",
+   "where": "주변",
+   "gate": "정문",
+   "category": "분식",
+   "lat": 37.3012797975944,
+   "lng": 127.031703404756,
+   "address": "경기 수원시 장안구 광교산로 154-13",
+   "url": "http://place.map.kakao.com/27549035",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "분식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "내마음이머무르는곳",
+   "where": "주변",
+   "gate": "정문",
+   "category": "양식",
+   "lat": 37.3014345406318,
+   "lng": 127.032569709358,
+   "address": "경기 수원시 장안구 광교산로 154-25",
+   "url": "http://place.map.kakao.com/18514790",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "다모아",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.29833294087567,
+   "lng": 127.03003855979384,
+   "address": "경기 수원시 장안구 창훈로60번길 24",
+   "url": "http://place.map.kakao.com/629481417",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "다모아 식당",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.3014345406318,
+   "lng": 127.032569709358,
+   "address": "경기 수원시 장안구 광교산로 154-25",
+   "url": "http://place.map.kakao.com/16011434",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
    "name": "레인보우돈까스",
    "where": "주변",
    "gate": "정문",
@@ -1706,6 +1578,74 @@
    "menus": [
     {
      "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "명동빈대떡",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.2988221003942,
+   "lng": 127.030443662236,
+   "address": "경기 수원시 장안구 창훈로60번길 28-15",
+   "url": "http://place.map.kakao.com/9031432",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "바람난장어",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.301564526281,
+   "lng": 127.0316990126,
+   "address": "경기 수원시 장안구 광교산로 160",
+   "url": "http://place.map.kakao.com/1926008664",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "상전",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.2996943697541,
+   "lng": 127.030186854829,
+   "address": "경기 수원시 장안구 광교산로 138",
+   "url": "http://place.map.kakao.com/68300868",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "아까세 2호점",
+   "where": "주변",
+   "gate": "정문",
+   "category": "기타",
+   "lat": 37.300125831035,
+   "lng": 127.030712627113,
+   "address": "경기 수원시 장안구 광교산로 142",
+   "url": "http://place.map.kakao.com/319396245",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -1728,14 +1668,14 @@
    ]
   },
   {
-   "name": "큰맘할매순대국 연무동점",
+   "name": "양평해장국 남산돈가스 광교점",
    "where": "주변",
    "gate": "정문",
    "category": "한식",
-   "lat": 37.2987862525862,
-   "lng": 127.029681203159,
-   "address": "경기 수원시 장안구 창훈로60번길 33",
-   "url": "http://place.map.kakao.com/1542732253",
+   "lat": 37.3011969540583,
+   "lng": 127.031509369004,
+   "address": "경기 수원시 장안구 광교산로 154-11",
+   "url": "http://place.map.kakao.com/11109732",
    "source": "kakao",
    "menus": [
     {
@@ -1762,57 +1702,6 @@
    ]
   },
   {
-   "name": "타코로 수원경기대점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "기타",
-   "lat": 37.2983878940954,
-   "lng": 127.030078057122,
-   "address": "경기 수원시 장안구 창훈로60번길 24",
-   "url": "http://place.map.kakao.com/898138597",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "다모아",
-   "where": "주변",
-   "gate": "정문",
-   "category": "한식",
-   "lat": 37.29833294087567,
-   "lng": 127.03003855979384,
-   "address": "경기 수원시 장안구 창훈로60번길 24",
-   "url": "http://place.map.kakao.com/629481417",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "굽네치킨 수원연무점",
-   "where": "주변",
-   "gate": "정문",
-   "category": "패스트푸드",
-   "lat": 37.29848437493364,
-   "lng": 127.02980176686057,
-   "address": "경기 수원시 장안구 창훈로60번길 29",
-   "url": "http://place.map.kakao.com/431840180",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "치킨 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
    "name": "정담순대국",
    "where": "주변",
    "gate": "정문",
@@ -1830,35 +1719,221 @@
    ]
   },
   {
-   "name": "김가네한식뷔페",
+   "name": "코다리 냉면",
    "where": "주변",
    "gate": "정문",
    "category": "한식",
-   "lat": 37.2989782892998,
-   "lng": 127.02921546437,
-   "address": "경기 수원시 장안구 창훈로66번길 33",
-   "url": "http://place.map.kakao.com/1018284958",
+   "lat": 37.300097022705465,
+   "lng": 127.03061674421879,
+   "address": "경기 수원시 장안구 광교산로 142",
+   "url": "http://place.map.kakao.com/15563570",
    "source": "kakao",
    "menus": [
     {
-     "name": "메뉴 (메뉴·가격은 카카오맵에서 확인)",
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
   },
   {
-   "name": "키친토리노",
+   "name": "큰맘할매순대국 연무동점",
    "where": "주변",
-   "gate": "후문",
-   "category": "양식",
-   "lat": 37.297606663319854,
-   "lng": 127.04201613395875,
-   "address": "경기 수원시 영통구 대학로 10",
-   "url": "http://place.map.kakao.com/1028962143",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.2987862525862,
+   "lng": 127.029681203159,
+   "address": "경기 수원시 장안구 창훈로60번길 33",
+   "url": "http://place.map.kakao.com/1542732253",
    "source": "kakao",
    "menus": [
     {
-     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "타코로 수원경기대점",
+   "where": "주변",
+   "gate": "정문",
+   "category": "기타",
+   "lat": 37.2983878940954,
+   "lng": 127.030078057122,
+   "address": "경기 수원시 장안구 창훈로60번길 24",
+   "url": "http://place.map.kakao.com/898138597",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "한상차림코다리명가 광교산점",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.3016166336768,
+   "lng": 127.032264121852,
+   "address": "경기 수원시 장안구 광교산로 164",
+   "url": "http://place.map.kakao.com/1511702901",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "한솥도시락 수원경기대점",
+   "where": "주변",
+   "gate": "정문",
+   "category": "기타",
+   "lat": 37.3001303333003,
+   "lng": 127.030723907911,
+   "address": "경기 수원시 장안구 광교산로 142",
+   "url": "http://place.map.kakao.com/18248430",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "치킨마요",
+     "price": 3900
+    },
+    {
+     "name": "빅치킨마요",
+     "price": 4600
+    },
+    {
+     "name": "돈까스도련님 고기고기",
+     "price": 7000
+    }
+   ],
+   "price_source": "전국 공통가 (기사 2025.8~2026.1), 매장별 다를 수 있음"
+  },
+  {
+   "name": "행복한밥상",
+   "where": "주변",
+   "gate": "정문",
+   "category": "한식",
+   "lat": 37.29950344263308,
+   "lng": 127.02982134301462,
+   "address": "경기 수원시 장안구 창훈로60번길 50",
+   "url": "http://place.map.kakao.com/1384835527",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "행복한찹쌀꽈배기 경기대점",
+   "where": "주변",
+   "gate": "정문",
+   "category": "기타",
+   "lat": 37.3001303330075,
+   "lng": 127.030725035808,
+   "address": "경기 수원시 장안구 광교산로 142",
+   "url": "http://place.map.kakao.com/216396415",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "BBQ 수원경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "패스트푸드",
+   "lat": 37.299242693569894,
+   "lng": 127.04272197113973,
+   "address": "경기 수원시 영통구 대학3로 1",
+   "url": "http://place.map.kakao.com/2032748834",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "치킨 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "겐코 경기대본점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "일식·아시안",
+   "lat": 37.299094587378356,
+   "lng": 127.04364336633564,
+   "address": "경기 수원시 영통구 대학로 34",
+   "url": "http://place.map.kakao.com/706199546",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "규동(M)",
+     "price": 9500
+    },
+    {
+     "name": "고추 규동(M)",
+     "price": 9500
+    },
+    {
+     "name": "새우장동(M)",
+     "price": 9500
+    },
+    {
+     "name": "육회동(M)",
+     "price": 9500
+    },
+    {
+     "name": "스테이크덮밥",
+     "price": 11000
+    },
+    {
+     "name": "대창덮밥",
+     "price": 11000
+    },
+    {
+     "name": "연어덮밥(M)",
+     "price": 13000
+    },
+    {
+     "name": "연어장동(M)",
+     "price": 13000
+    },
+    {
+     "name": "미소라멘(M)",
+     "price": 9500
+    },
+    {
+     "name": "소유라멘(M)",
+     "price": 9500
+    },
+    {
+     "name": "차슈라멘(M)",
+     "price": 10000
+    }
+   ],
+   "price_source": "다이닝코드 (날짜 미상)"
+  },
+  {
+   "name": "경기대닭발",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2983065010594,
+   "lng": 127.042764300684,
+   "address": "경기 수원시 영통구 대학로 20",
+   "url": "http://place.map.kakao.com/27300305",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -1881,142 +1956,6 @@
    ]
   },
   {
-   "name": "춘천에서온숯닭",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2977048141516,
-   "lng": 127.042191006927,
-   "address": "경기 수원시 영통구 대학로 12",
-   "url": "http://place.map.kakao.com/27509258",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "비어웍스 광교경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2978381224967,
-   "lng": 127.042317401982,
-   "address": "경기 수원시 영통구 대학로 14",
-   "url": "http://place.map.kakao.com/1978895475",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "반포",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2972389732805,
-   "lng": 127.0422042809831,
-   "address": "경기 수원시 영통구 대학1로8번길 2",
-   "url": "http://place.map.kakao.com/588984785",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "블루체크",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.29724617755305,
-   "lng": 127.04221556354449,
-   "address": "경기 수원시 영통구 대학1로8번길 2",
-   "url": "http://place.map.kakao.com/2060430885",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "상원회관 광교점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.297601951334784,
-   "lng": 127.04259472297686,
-   "address": "경기 수원시 영통구 대학1로 12",
-   "url": "http://place.map.kakao.com/646465404",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "용부리또 Yong's burrito 본점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "양식",
-   "lat": 37.2973226453379,
-   "lng": 127.042551707002,
-   "address": "경기 수원시 영통구 대학1로8번길 5",
-   "url": "http://place.map.kakao.com/2114984191",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "사쿠라 경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2981173102251,
-   "lng": 127.042689754378,
-   "address": "경기 수원시 영통구 대학로 18",
-   "url": "http://place.map.kakao.com/867480104",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "경기대닭발",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2983065010594,
-   "lng": 127.042764300684,
-   "address": "경기 수원시 영통구 대학로 20",
-   "url": "http://place.map.kakao.com/27300305",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
    "name": "경동화로",
    "where": "주변",
    "gate": "후문",
@@ -2025,6 +1964,23 @@
    "lng": 127.042855384091,
    "address": "경기 수원시 영통구 대학1로 14",
    "url": "http://place.map.kakao.com/1995966525",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "경성한우국밥연구소",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2999150862825,
+   "lng": 127.042109905288,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/1991350288",
    "source": "kakao",
    "menus": [
     {
@@ -2046,79 +2002,6 @@
    "menus": [
     {
      "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "수원조개창고",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2983065002443,
-   "lng": 127.042766556422,
-   "address": "경기 수원시 영통구 대학로 20",
-   "url": "http://place.map.kakao.com/163774470",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "카타르시스",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.297895574431,
-   "lng": 127.042912946004,
-   "address": "경기 수원시 영통구 대학1로 16",
-   "url": "http://place.map.kakao.com/27539673",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "수육튀김(2인분)",
-     "price": 20900
-    },
-    {
-     "name": "수육튀김(4인분)",
-     "price": 37900
-    }
-   ],
-   "price_source": "다이닝코드 (날짜 미상) · 주점"
-  },
-  {
-   "name": "온마중",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2961365820418,
-   "lng": 127.040841237911,
-   "address": "경기 수원시 영통구 창룡대로256번길 77",
-   "url": "http://place.map.kakao.com/1914025890",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "하루",
-   "where": "주변",
-   "gate": "후문",
-   "category": "일식·아시안",
-   "lat": 37.2981045382936,
-   "lng": 127.043123975742,
-   "address": "경기 수원시 영통구 대학1로 20-1",
-   "url": "http://place.map.kakao.com/482587246",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -2158,6 +2041,330 @@
    "price_source": "다이닝코드 (날짜 미상)"
   },
   {
+   "name": "다이닝펍 이서",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2987296625608,
+   "lng": 127.043656689996,
+   "address": "경기 수원시 영통구 대학1로8번길 41",
+   "url": "http://place.map.kakao.com/933694427",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "다인푸드",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2957605618231,
+   "lng": 127.041666607249,
+   "address": "경기 수원시 영통구 창룡대로256번길 91",
+   "url": "http://place.map.kakao.com/1856377404",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "도스마스 경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "양식",
+   "lat": 37.29909308808162,
+   "lng": 127.04281437278263,
+   "address": "경기 수원시 영통구 대학3로 1",
+   "url": "http://place.map.kakao.com/27512974",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "동틈 경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "일식·아시안",
+   "lat": 37.2998728423404,
+   "lng": 127.041814373809,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/551665381",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "등촌샤브칼국수 경기대역점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.299797011138,
+   "lng": 127.04222037284923,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/271548019",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "샤브샤브 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "마라타임마라탕 광교점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "중식",
+   "lat": 37.29932347807531,
+   "lng": 127.0435690582009,
+   "address": "경기 수원시 영통구 대학로 34",
+   "url": "http://place.map.kakao.com/481208909",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "중식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "맑은주막",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2959922715607,
+   "lng": 127.038586617883,
+   "address": "경기 수원시 영통구 창룡대로256번길 41",
+   "url": "http://place.map.kakao.com/717966820",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "맘스터치 광교역점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "패스트푸드",
+   "lat": 37.29921654233509,
+   "lng": 127.0427806062676,
+   "address": "경기 수원시 영통구 대학3로 1",
+   "url": "http://place.map.kakao.com/1245891331",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "싸이버거(단품)",
+     "price": 5200
+    }
+   ],
+   "price_source": "전국 공통가 (기사 2026.3), 매장별 다를 수 있음"
+  },
+  {
+   "name": "바다왕코다리",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2999707045753,
+   "lng": 127.042795696039,
+   "address": "경기 수원시 영통구 대학3로4번길 7",
+   "url": "http://place.map.kakao.com/1927610157",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "반포",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2972389732805,
+   "lng": 127.0422042809831,
+   "address": "경기 수원시 영통구 대학1로8번길 2",
+   "url": "http://place.map.kakao.com/588984785",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "밥말이김밥",
+   "where": "주변",
+   "gate": "후문",
+   "category": "분식",
+   "lat": 37.29971695505949,
+   "lng": 127.0418368453213,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/766720118",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "분식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "블루체크",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.29724617755305,
+   "lng": 127.04221556354449,
+   "address": "경기 수원시 영통구 대학1로8번길 2",
+   "url": "http://place.map.kakao.com/2060430885",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "비어웍스 광교경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2978381224967,
+   "lng": 127.042317401982,
+   "address": "경기 수원시 영통구 대학로 14",
+   "url": "http://place.map.kakao.com/1978895475",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "사쿠라 경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2981173102251,
+   "lng": 127.042689754378,
+   "address": "경기 수원시 영통구 대학로 18",
+   "url": "http://place.map.kakao.com/867480104",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "상원회관 광교점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.297601951334784,
+   "lng": 127.04259472297686,
+   "address": "경기 수원시 영통구 대학1로 12",
+   "url": "http://place.map.kakao.com/646465404",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "서울감자탕",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2980242933268,
+   "lng": 127.043268296682,
+   "address": "경기 수원시 영통구 대학1로8번길 29",
+   "url": "http://place.map.kakao.com/335671286",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "수원조개창고",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2983065002443,
+   "lng": 127.042766556422,
+   "address": "경기 수원시 영통구 대학로 20",
+   "url": "http://place.map.kakao.com/163774470",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "앤케이커리",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.297511482566,
+   "lng": 127.043597337362,
+   "address": "경기 수원시 영통구 대학1로8번길 16-2",
+   "url": "http://place.map.kakao.com/152410930",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "야화 혼술바 광교점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2992621801651,
+   "lng": 127.04364346317,
+   "address": "경기 수원시 영통구 대학로 34",
+   "url": "http://place.map.kakao.com/424674824",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
    "name": "어랑다랑",
    "where": "주변",
    "gate": "후문",
@@ -2192,57 +2399,6 @@
    "price_source": "다이닝코드 (날짜 미상)"
   },
   {
-   "name": "서울감자탕",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2980242933268,
-   "lng": 127.043268296682,
-   "address": "경기 수원시 영통구 대학1로8번길 29",
-   "url": "http://place.map.kakao.com/335671286",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "도스마스 경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "양식",
-   "lat": 37.29909308808162,
-   "lng": 127.04281437278263,
-   "address": "경기 수원시 영통구 대학3로 1",
-   "url": "http://place.map.kakao.com/27512974",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "밥말이김밥",
-   "where": "주변",
-   "gate": "후문",
-   "category": "분식",
-   "lat": 37.29971695505949,
-   "lng": 127.0418368453213,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/766720118",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "분식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
    "name": "엉터리생고기 무한대패 광교경기대점",
    "where": "주변",
    "gate": "후문",
@@ -2255,211 +2411,6 @@
    "menus": [
     {
      "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "BBQ 수원경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "패스트푸드",
-   "lat": 37.299242693569894,
-   "lng": 127.04272197113973,
-   "address": "경기 수원시 영통구 대학3로 1",
-   "url": "http://place.map.kakao.com/2032748834",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "치킨 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "맘스터치 광교역점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "패스트푸드",
-   "lat": 37.29921654233509,
-   "lng": 127.0427806062676,
-   "address": "경기 수원시 영통구 대학3로 1",
-   "url": "http://place.map.kakao.com/1245891331",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "싸이버거(단품)",
-     "price": 5200
-    }
-   ],
-   "price_source": "전국 공통가 (기사 2026.3), 매장별 다를 수 있음"
-  },
-  {
-   "name": "황금무지개 횟집",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.29743496532247,
-   "lng": 127.0434044297477,
-   "address": "경기 수원시 영통구 대학1로8번길 16-1",
-   "url": "http://place.map.kakao.com/1356560928",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "다인푸드",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2957605618231,
-   "lng": 127.041666607249,
-   "address": "경기 수원시 영통구 창룡대로256번길 91",
-   "url": "http://place.map.kakao.com/1856377404",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "지지고 수원경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.299871040676,
-   "lng": 127.041813244919,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/349909919",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "도시락 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "이담",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2998728423404,
-   "lng": 127.041814373809,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/1128672262",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "동틈 경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "일식·아시안",
-   "lat": 37.2998728423404,
-   "lng": 127.041814373809,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/551665381",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "점심엔찌개",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2957119070214,
-   "lng": 127.041663196921,
-   "address": "경기 수원시 영통구 창룡대로256번길 91",
-   "url": "http://place.map.kakao.com/1401032654",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "앤케이커리",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.297511482566,
-   "lng": 127.043597337362,
-   "address": "경기 수원시 영통구 대학1로8번길 16-2",
-   "url": "http://place.map.kakao.com/152410930",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "등촌샤브칼국수 경기대역점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.299797011138,
-   "lng": 127.04222037284923,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/271548019",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "샤브샤브 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "경성한우국밥연구소",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2999150862825,
-   "lng": 127.042109905288,
-   "address": "경기 수원시 영통구 대학3로 7",
-   "url": "http://place.map.kakao.com/1991350288",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "다이닝펍 이서",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2987296625608,
-   "lng": 127.043656689996,
-   "address": "경기 수원시 영통구 대학1로8번길 41",
-   "url": "http://place.map.kakao.com/933694427",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -2529,6 +2480,215 @@
     }
    ],
    "price_source": "다이닝코드 (날짜 미상)"
+  },
+  {
+   "name": "역전우동0410 광교역경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "일식·아시안",
+   "lat": 37.2992369615466,
+   "lng": 127.04361525151484,
+   "address": "경기 수원시 영통구 대학로 34",
+   "url": "http://place.map.kakao.com/294085050",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "온마중",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2961365820418,
+   "lng": 127.040841237911,
+   "address": "경기 수원시 영통구 창룡대로256번길 77",
+   "url": "http://place.map.kakao.com/1914025890",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "용부리또 Yong's burrito 본점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "양식",
+   "lat": 37.2973226453379,
+   "lng": 127.042551707002,
+   "address": "경기 수원시 영통구 대학1로8번길 5",
+   "url": "http://place.map.kakao.com/2114984191",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "이담",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.2998728423404,
+   "lng": 127.041814373809,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/1128672262",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "간식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "점심엔찌개",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2957119070214,
+   "lng": 127.041663196921,
+   "address": "경기 수원시 영통구 창룡대로256번길 91",
+   "url": "http://place.map.kakao.com/1401032654",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "조선부뚜막 광교역점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2985601557949,
+   "lng": 127.043958862058,
+   "address": "경기 수원시 영통구 대학1로8번길 45",
+   "url": "http://place.map.kakao.com/273515978",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "중화식탁",
+   "where": "주변",
+   "gate": "후문",
+   "category": "중식",
+   "lat": 37.29992652438814,
+   "lng": 127.0428768793495,
+   "address": "경기 수원시 영통구 대학3로4번길 7",
+   "url": "http://place.map.kakao.com/1214675869",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "중식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "지지고 수원경기대점",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.299871040676,
+   "lng": 127.041813244919,
+   "address": "경기 수원시 영통구 대학3로 7",
+   "url": "http://place.map.kakao.com/349909919",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "도시락 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "춘천에서온숯닭",
+   "where": "주변",
+   "gate": "후문",
+   "category": "한식",
+   "lat": 37.2977048141516,
+   "lng": 127.042191006927,
+   "address": "경기 수원시 영통구 대학로 12",
+   "url": "http://place.map.kakao.com/27509258",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "카타르시스",
+   "where": "주변",
+   "gate": "후문",
+   "category": "기타",
+   "lat": 37.297895574431,
+   "lng": 127.042912946004,
+   "address": "경기 수원시 영통구 대학1로 16",
+   "url": "http://place.map.kakao.com/27539673",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "수육튀김(2인분)",
+     "price": 20900
+    },
+    {
+     "name": "수육튀김(4인분)",
+     "price": 37900
+    }
+   ],
+   "price_source": "다이닝코드 (날짜 미상) · 주점"
+  },
+  {
+   "name": "키친토리노",
+   "where": "주변",
+   "gate": "후문",
+   "category": "양식",
+   "lat": 37.297606663319854,
+   "lng": 127.04201613395875,
+   "address": "경기 수원시 영통구 대학로 10",
+   "url": "http://place.map.kakao.com/1028962143",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "양식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
+  },
+  {
+   "name": "하루",
+   "where": "주변",
+   "gate": "후문",
+   "category": "일식·아시안",
+   "lat": 37.2981045382936,
+   "lng": 127.043123975742,
+   "address": "경기 수원시 영통구 대학1로 20-1",
+   "url": "http://place.map.kakao.com/482587246",
+   "source": "kakao",
+   "menus": [
+    {
+     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
+     "price": null
+    }
+   ]
   },
   {
    "name": "핵밥 수원경기대점",
@@ -2609,178 +2769,18 @@
    "price_source": "다이닝코드 (날짜 미상)"
   },
   {
-   "name": "맑은주막",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2959922715607,
-   "lng": 127.038586617883,
-   "address": "경기 수원시 영통구 창룡대로256번길 41",
-   "url": "http://place.map.kakao.com/717966820",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "겐코 경기대본점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "일식·아시안",
-   "lat": 37.299094587378356,
-   "lng": 127.04364336633564,
-   "address": "경기 수원시 영통구 대학로 34",
-   "url": "http://place.map.kakao.com/706199546",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "규동(M)",
-     "price": 9500
-    },
-    {
-     "name": "고추 규동(M)",
-     "price": 9500
-    },
-    {
-     "name": "새우장동(M)",
-     "price": 9500
-    },
-    {
-     "name": "육회동(M)",
-     "price": 9500
-    },
-    {
-     "name": "스테이크덮밥",
-     "price": 11000
-    },
-    {
-     "name": "대창덮밥",
-     "price": 11000
-    },
-    {
-     "name": "연어덮밥(M)",
-     "price": 13000
-    },
-    {
-     "name": "연어장동(M)",
-     "price": 13000
-    },
-    {
-     "name": "미소라멘(M)",
-     "price": 9500
-    },
-    {
-     "name": "소유라멘(M)",
-     "price": 9500
-    },
-    {
-     "name": "차슈라멘(M)",
-     "price": 10000
-    }
-   ],
-   "price_source": "다이닝코드 (날짜 미상)"
-  },
-  {
-   "name": "조선부뚜막 광교역점",
+   "name": "황금무지개 횟집",
    "where": "주변",
    "gate": "후문",
    "category": "한식",
-   "lat": 37.2985601557949,
-   "lng": 127.043958862058,
-   "address": "경기 수원시 영통구 대학1로8번길 45",
-   "url": "http://place.map.kakao.com/273515978",
+   "lat": 37.29743496532247,
+   "lng": 127.0434044297477,
+   "address": "경기 수원시 영통구 대학1로8번길 16-1",
+   "url": "http://place.map.kakao.com/1356560928",
    "source": "kakao",
    "menus": [
     {
      "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "역전우동0410 광교역경기대점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "일식·아시안",
-   "lat": 37.2992369615466,
-   "lng": 127.04361525151484,
-   "address": "경기 수원시 영통구 대학로 34",
-   "url": "http://place.map.kakao.com/294085050",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "일식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "마라타임마라탕 광교점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "중식",
-   "lat": 37.29932347807531,
-   "lng": 127.0435690582009,
-   "address": "경기 수원시 영통구 대학로 34",
-   "url": "http://place.map.kakao.com/481208909",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "중식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "바다왕코다리",
-   "where": "주변",
-   "gate": "후문",
-   "category": "한식",
-   "lat": 37.2999707045753,
-   "lng": 127.042795696039,
-   "address": "경기 수원시 영통구 대학3로4번길 7",
-   "url": "http://place.map.kakao.com/1927610157",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "한식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "중화식탁",
-   "where": "주변",
-   "gate": "후문",
-   "category": "중식",
-   "lat": 37.29992652438814,
-   "lng": 127.0428768793495,
-   "address": "경기 수원시 영통구 대학3로4번길 7",
-   "url": "http://place.map.kakao.com/1214675869",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "중식 (메뉴·가격은 카카오맵에서 확인)",
-     "price": null
-    }
-   ]
-  },
-  {
-   "name": "야화 혼술바 광교점",
-   "where": "주변",
-   "gate": "후문",
-   "category": "기타",
-   "lat": 37.2992621801651,
-   "lng": 127.04364346317,
-   "address": "경기 수원시 영통구 대학로 34",
-   "url": "http://place.map.kakao.com/424674824",
-   "source": "kakao",
-   "menus": [
-    {
-     "name": "술집 (메뉴·가격은 카카오맵에서 확인)",
      "price": null
     }
    ]
@@ -2833,7 +2833,7 @@
     "배추김치"
    ]
   },
-  "fetched": "2026-11-11"
+  "fetched": "2026-11-12"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -2979,6 +2979,6 @@
     ]
    }
   },
-  "fetched": "2026-11-11"
+  "fetched": "2026-11-12"
  }
 }

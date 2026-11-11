@@ -1,0 +1,31 @@
+# 학식·기숙사 식단·주변 식당을 평일 아침마다 새로 가져와서, 바뀐 게 있을 때만 data.json을 커밋.
+# 커밋되면 Streamlit Cloud가 알아서 다시 배포함. 수동 실행: Actions 탭 → crawl → Run workflow
+name: crawl
+on:
+  schedule:
+    - cron: "30 22 * * 0-4"  # UTC 일~목 22:30 = 한국 월~금 07:30
+  workflow_dispatch:
+permissions:
+  contents: write  # data.json 커밋용 (이 저장소만)
+concurrency: crawl
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pypdf
+      - run: python crawl.py
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}  # 없으면 주변 식당만 건너뜀
+          PYTHONIOENCODING: utf-8
+      - name: 바뀌었으면 커밋
+        run: |
+          if git diff --quiet data.json; then echo "변경 없음"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "식단·식당 정보 자동 갱신 ($(TZ=Asia/Seoul date +%F))" data.json
+          git push
