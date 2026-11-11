@@ -805,7 +805,8 @@ p,li{color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]>*{flex:1;display:flex;min-width:0}  /* 새 Streamlit은 칸마다 div로 한 번 더 감쌈 → 감싼 div도 칸 전체로 */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:8px 0;border-radius:12px;position:relative;z-index:1;background:none!important;cursor:pointer}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div:first-child,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div>div:first-child:not([data-testid]){display:none}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted);transition:color .25s}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div{flex:1;display:flex;justify-content:center;min-width:0}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted);transition:color .25s;text-align:center;margin:0}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked) p{color:var(--brand);font-weight:800}
 /* 선택 표시: 탭바 위 한 장의 하이라이트가 고른 칸으로 미끄러져 감 (탭 4개 기준) */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]::before{content:"";position:absolute;left:6px;top:8px;bottom:calc(8px + env(safe-area-inset-bottom));width:calc((100% - 12px) / 4);
