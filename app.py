@@ -593,7 +593,7 @@ WEEKDAY = "월화수목금토일"
 APP_CSS = """<style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 :root{--brand:#FF5A1F;--soft:#FFF2EC;--ink:#191F28;--sub:#4E5968;--muted:#8B95A1;--line:#EEF0F3;--bg:#F4F5F7}
-html,body,.stApp,.stApp *:not(.material-icons):not([class*="icon"]){font-family:'Pretendard Variable',Pretendard,-apple-system,'Malgun Gothic',sans-serif}
+html,body,.stApp,.stApp *:not(.material-icons):not([class*="icon"]):not([data-testid*="Icon"]):not([class*="material"]){font-family:'Pretendard Variable',Pretendard,-apple-system,'Malgun Gothic',sans-serif}
 .stApp{background:var(--bg);color:var(--ink)}
 header[data-testid="stHeader"]{background:transparent;height:0}
 [data-testid="stToolbar"],[data-testid="stDecoration"],#MainMenu,footer,[data-testid="stStatusWidget"]{display:none!important}
