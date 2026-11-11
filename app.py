@@ -7,15 +7,15 @@ import random
 import re
 import secrets
 import socket
-import threading
 import urllib.parse
 from pathlib import Path
 from time import time as epoch
 
+import store
+
 DIR = Path(__file__).parent
 DATA = json.loads((DIR / "data.json").read_text("utf-8"))
 STATE_FILE = Path(os.environ.get("LUNCH_STATE") or DIR / "state.json")  # 테스트할 땐 다른 파일로
-_lock = threading.Lock()  # 여러 친구가 동시에 눌러도 state.json이 꼬이지 않게
 
 
 # ---------- 순수 로직 (test_app.py에서 검사) ----------
@@ -200,18 +200,14 @@ def today():
 
 # ---------- 저장 (방문 수, 같이먹기 모집) ----------
 def load_state():
-    s = json.loads(STATE_FILE.read_text("utf-8")) if STATE_FILE.exists() else {"visits": {}, "parties": []}
+    s = store.load(STATE_FILE)  # 배포: Supabase, 로컬: state.json (store.py)
     for i, p in enumerate(s["parties"]):
         p.setdefault("id", f"old{i}")  # 예전 형식(아이디 없음) 모집도 다룰 수 있게
     return s
 
 
 def update_state(fn):
-    with _lock:
-        s = load_state()
-        fn(s)
-        STATE_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=1), "utf-8")
-        return s
+    return store.update(STATE_FILE, fn)
 
 
 def add_visit(name, when=None, uid=None):
