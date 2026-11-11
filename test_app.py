@@ -356,4 +356,12 @@ app.leave_party(s11, "j", "k2"); assert app.payer_of(pj) == "k1"  # 담당자가
 app.join_party(s11, "j", "k4", "치킨")
 assert app.edit_party(s11, "j", "k1", "12:00", "정문", 3, "", place="y") is None
 assert pj["place"] == "y" and all(m["menu"] == "" for m in app.members_of(pj))
+# 운영자: ADMIN_IDS에 있으면 남의 모집도 삭제
+s12 = {"parties": []}
+app.add_party(s12, "a1", "k1", "x", "12:00")
+_os.environ["ADMIN_IDS"] = " k900 , k901"
+assert not app.is_admin("") and not app.is_admin("k1") and app.is_admin("k901")
+assert app.delete_party(s12, "a1", "k2") == "방장만 삭제할 수 있어요"
+assert app.delete_party(s12, "a1", "k900") is None and s12["parties"] == []
+_os.environ.pop("ADMIN_IDS")
 print("ok")

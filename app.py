@@ -723,11 +723,16 @@ def set_pay(s, pid, name, toss, kakao, mode, total=None):
     return None
 
 
+def is_admin(uid):
+    """운영자: Streamlit Secrets의 ADMIN_IDS (카카오 회원번호, 쉼표로 여러 명. 예: "k123,k456")"""
+    return bool(uid) and uid in {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()}
+
+
 def delete_party(s, pid, name):
     p = find_party(s, pid)
     if not p:
         return "없어진 모집이에요"
-    if host_of(p) != name:
+    if host_of(p) != name and not is_admin(name):
         return "방장만 삭제할 수 있어요"
     s["parties"].remove(p)
     return None
@@ -1736,6 +1741,13 @@ def main():
                     disabled=not me or asked or st_ != "모집중", on_click=act, args=(request_join, p["id"], me, my_nick, my_menu)))
             if me and me == host:
                 acts.append(lambda c: manage(c, p))
+            elif is_admin(me):  # 운영자: 부적절한 모집 삭제
+                def admin_del(c, pid=p["id"]):
+                    with c.popover("운영", use_container_width=True):
+                        sure = st.checkbox("운영자 권한으로 이 모집을 삭제할게요", key=f"adm_{pid}")
+                        st.button("모집 삭제", key=f"admdel_{pid}", type="primary", disabled=not sure,
+                                  use_container_width=True, on_click=act, args=(delete_party, pid, me))
+                acts.append(admin_del)
             if r:
                 acts.append(lambda c: c.link_button("길찾기", route_url(r), use_container_width=True))
             for c, draw in zip(st.columns(len(acts)), acts):
