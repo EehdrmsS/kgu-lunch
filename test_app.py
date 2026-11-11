@@ -127,7 +127,7 @@ app.add_party(s3, "q1", "방장", "x", "12:00", menu="A")
 app.join_party(s3, "q1", "친구", "A, B")
 pp = s3["parties"][0]
 assert app.settle(pp, rr) == [("방장", 5000), ("친구", 8000)]  # 기본은 메뉴별
-assert app.set_pay(s3, "q1", "친구", "me", "", "N빵") == "방장만 정산을 설정할 수 있어요"
+assert app.set_pay(s3, "q1", "친구", "me", "", "N빵") == "결제 담당자만 정산을 설정할 수 있어요"
 assert app.set_pay(s3, "q1", "방장", "bad id!", "", "N빵") and app.set_pay(s3, "q1", "방장", "", "http://evil.com", "N빵")
 assert app.set_pay(s3, "q1", "방장", "me", "https://qr.kakaopay.com/Ej7abc", "N빵") is None
 assert app.settle(pp, rr) == [("방장", 6500), ("친구", 6500)]  # 13000 ÷ 2
@@ -310,7 +310,7 @@ assert app.make_login_token("k42", "동근", now=1000) == tok and "." in tok
 # 정산 완료 체크
 s8 = {"parties": []}
 app.add_party(s8, "z", "k1", "x", "12:00", day="2026-11-12"); app.join_party(s8, "z", "k2"); app.join_party(s8, "z", "k3")
-assert app.mark_paid(s8, "z", "k2", "k3") == "방장만 표시할 수 있어요"
+assert app.mark_paid(s8, "z", "k2", "k3") == "결제 담당자만 표시할 수 있어요"
 assert app.mark_paid(s8, "z", "k1", "k1") == app.mark_paid(s8, "z", "k1", "k9") == "모집에 없는 사람이에요"
 assert app.mark_paid(s8, "z", "k1", "k2") is None and app.mark_paid(s8, "z", "k1", "k2") is None and s8["parties"][0]["paid"] == ["k2"]
 assert app.mark_paid(s8, "z", "k1", "k2", False) is None and s8["parties"][0]["paid"] == []
@@ -327,4 +327,33 @@ app.delete_me(st9, "k5"); assert "k5" not in st9["meals"]
 # 카카오톡 공유 버튼: 글에 </script>가 있어도 스크립트가 끊기지 않음
 h = app.kakao_share_html("밥 </script><script>alert(1)</script>", "https://x.app/?party=ab12cd")
 assert h.count("</script>") == 2 and r"<\/script>" in h and "integrity=" in h and "Kakao.Share.sendDefault" in h
+# 메뉴 수정: 내 것만, 비우기도 됨, 마감돼도 됨
+s10 = {"parties": []}
+app.add_party(s10, "m", "k1", "x", "12:00", menu="A"); app.join_party(s10, "m", "k2", "B"); app.close_party(s10, "m", "k1")
+assert app.set_menu(s10, "m", "k2", "C, D") is None and app.members_of(s10["parties"][0])[1]["menu"] == "C, D"
+assert app.set_menu(s10, "m", "k2", "") is None and app.members_of(s10["parties"][0])[1]["menu"] == ""
+assert app.set_menu(s10, "m", "k9", "X") == "참여 중인 모집이 아니에요" and app.set_menu(s10, "zz", "k1", "X") == "없어진 모집이에요"
+# 참여 요청 → 방장 수락/거절
+s11 = {"parties": []}
+app.add_party(s11, "j", "k1", "x", "12:00", max_n=3)
+assert app.request_join(s11, "j", "k1") == "이미 참여 중이에요"
+assert app.request_join(s11, "j", "k2", "철수", "A") is None and app.request_join(s11, "j", "k2", "철수", "B") is None
+pj = s11["parties"][0]
+assert [x["menu"] for x in pj["pending"]] == ["B"] and len(app.members_of(pj)) == 1  # 수락 전엔 멤버 아님
+assert app.answer_join(s11, "j", "k2", "k2", True) == "방장만 수락할 수 있어요"
+assert app.answer_join(s11, "j", "k1", "k2", True) is None and [m["name"] for m in app.members_of(pj)] == ["k1", "k2"]
+app.request_join(s11, "j", "k3"); assert app.answer_join(s11, "j", "k1", "k3", False) is None
+assert pj["pending"] == [] and len(app.members_of(pj)) == 2
+# 결제 담당자 넘기기
+assert app.payer_of(pj) == "k1" and app.set_payer(s11, "j", "k2", "k2") == "방장만 바꿀 수 있어요"
+app.set_pay(s11, "j", "k1", "hostid", "", "메뉴별")
+assert app.set_payer(s11, "j", "k1", "k9") == "모집에 없는 사람이에요"
+assert app.set_payer(s11, "j", "k1", "k2") is None and app.payer_of(pj) == "k2" and "pay" not in pj  # 예전 송금 정보 지움
+assert app.set_pay(s11, "j", "k1", "x", "", "N빵") == "결제 담당자만 정산을 설정할 수 있어요"
+assert app.set_pay(s11, "j", "k2", "payer2", "", "N빵") is None and app.mark_paid(s11, "j", "k2", "k1") is None
+app.leave_party(s11, "j", "k2"); assert app.payer_of(pj) == "k1"  # 담당자가 나가면 방장에게
+# 방장이 식당 바꾸면 메뉴 비움
+app.join_party(s11, "j", "k4", "치킨")
+assert app.edit_party(s11, "j", "k1", "12:00", "정문", 3, "", place="y") is None
+assert pj["place"] == "y" and all(m["menu"] == "" for m in app.members_of(pj))
 print("ok")

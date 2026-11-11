@@ -46,6 +46,32 @@ assert any(x.label.startswith("최근 3일 간 곳 빼기") for x in at.toggle)
 at.radio(key="nav").set_value("홈"); at.run()
 assert "이번 주 1번 결정" in " ".join(m.value for m in at.markdown)
 
+# 같이 먹기: 내 모집에서 메뉴 수정 (메뉴판에서 고르기)
+import app as _app
+_app.STATE_FILE = __import__("pathlib").Path(os.environ["LUNCH_STATE"])
+_app.update_state(lambda s: _app.add_party(s, "t1", "k42", "버거&타코", "23:59", menu="", nick="동근"))
+at.radio(key="nav").set_value("같이 먹기"); at.run()
+assert not at.exception, at.exception
+pick = at.multiselect(key="mm_t1")
+pick.select(pick.options[0]); at.run()
+at.button(key="ms_t1").click(); at.run()
+assert not at.exception, at.exception
+saved = json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))["parties"][0]["members"][0]["menu"]
+assert saved and saved in pick.options[0], (saved, pick.options[0])
+# 초대 링크 없이 온 사람의 참여 요청 → 방장 수락
+_app.update_state(lambda s: _app.request_join(s, "t1", "k77", "민수", ""))
+at.run()
+at.button(key="ok_t1_k77").click(); at.run()
+assert not at.exception, at.exception
+party = json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))["parties"][0]
+assert [m["name"] for m in party["members"]] == ["k42", "k77"] and party["pending"] == []
+# 방장: 결제 담당자 넘기기
+sel = at.selectbox(key="payer_t1")
+sel.select(next(o for o in sel.options if o.startswith("민수"))); at.run()
+assert not at.exception, at.exception
+assert json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))["parties"][0]["payer"] == "k77"
+
+at.radio(key="nav").set_value("홈"); at.run()
 # 내 정보 삭제: 체크해야 버튼이 눌리고, 누르면 프로필 삭제 + 로그아웃
 next(x for x in at.checkbox if x.key == "del_me_sure").check()
 at.run()

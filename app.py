@@ -502,12 +502,12 @@ def meal_summary(s, uid, day):
 
 
 def mark_paid(s, pid, host_uid, member, paid=True):
-    """방장이 '송금 받음' 표시. 방장만, 모집에 있는 다른 사람만."""
+    """결제 담당자가 '송금 받음' 표시. 담당자만, 모집에 있는 다른 사람만."""
     p = find_party(s, pid)
     if not p:
         return "없어진 모집이에요"
-    if host_of(p) != host_uid:
-        return "방장만 표시할 수 있어요"
+    if payer_of(p) != host_uid:
+        return "결제 담당자만 표시할 수 있어요"
     if member == host_uid or not any(m["name"] == member for m in members_of(p)):
         return "모집에 없는 사람이에요"
     done = [x for x in p.get("paid", []) if x != member]
@@ -521,6 +521,8 @@ def delete_me(s, uid):
     s.get("meals", {}).pop(uid, None)
     for p in [p for p in s["parties"] if any(m["name"] == uid for m in members_of(p))]:
         leave_party(s, p["id"], uid)
+    for p in s["parties"]:
+        p["pending"] = [x for x in p.get("pending", []) if x["name"] != uid]
     s["counted"] = {d: [k for k in v if not k.startswith(uid + "|")] for d, v in s.get("counted", {}).items()}
     return None
 
@@ -552,6 +554,20 @@ def mask(nick):
     return nick if len(nick) < 2 else nick[0] + "*" * (len(nick) - 2 if len(nick) > 2 else 1) + (nick[-1] if len(nick) > 2 else "")
 
 
+def set_menu(s, pid, uid, menu):
+    """이미 낀 모집에서 내 메뉴 바꾸기 (비우기도 가능). 마감·정원과 상관없이 내 것만."""
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    ms = members_of(p)
+    for m in ms:
+        if m["name"] == uid:
+            m["menu"] = str(menu).strip()[:100]
+            p["members"] = ms
+            return None
+    return "참여 중인 모집이 아니에요"
+
+
 def nick_of(p, name):
     """화면에 보일 이름: 로그인 계정 id 대신 카카오 닉네임 (예전 데이터는 이름 그대로)."""
     return next((m.get("nick") or m["name"] for m in members_of(p) if m["name"] == name), name)
@@ -569,6 +585,64 @@ def leave_party(s, pid, name):
     p["members"] = ms
     if was_host:
         p["host"] = ms[0]["name"]  # 방장이 나가면 다음 사람이 방장
+    if p.get("payer") == name:
+        p.pop("payer")  # 결제 담당자가 나가면 방장이 다시 맡음
+    p["paid"] = [x for x in p.get("paid", []) if x != name]
+    return None
+
+
+def payer_of(p):
+    """정산에서 돈을 받는 사람: 방장이 넘겨준 결제 담당자, 없으면 방장."""
+    return p.get("payer") if any(m["name"] == p.get("payer") for m in members_of(p)) else host_of(p)
+
+
+def request_join(s, pid, uid, nick="", menu=""):
+    """초대 링크 없이 참여: 방장 수락 대기 목록에 올림."""
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if any(m["name"] == uid for m in members_of(p)):
+        return "이미 참여 중이에요"
+    if p.get("closed") or len(members_of(p)) >= p.get("max", 99):
+        return "마감된 모집이에요"
+    pend = [x for x in p.get("pending", []) if x["name"] != uid]
+    if len(pend) >= 20:
+        return "참여 요청이 너무 많아요"
+    p["pending"] = pend + [{"name": uid, "nick": str(nick)[:20], "menu": str(menu)[:100]}]
+    return None
+
+
+def answer_join(s, pid, host_uid, uid, ok):
+    """방장이 참여 요청 수락(ok=True)/거절."""
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != host_uid:
+        return "방장만 수락할 수 있어요"
+    req = next((x for x in p.get("pending", []) if x["name"] == uid), None)
+    if not req:
+        return "요청이 없어요"
+    p["pending"] = [x for x in p["pending"] if x["name"] != uid]
+    if not ok:
+        return None
+    if len(members_of(p)) >= p.get("max", 99):
+        return "자리가 다 찼어요"
+    p["members"] = members_of(p) + [req]
+    return None
+
+
+def set_payer(s, pid, host_uid, uid):
+    """방장이 결제 담당자를 다른 참여자에게 넘김 (돈 받는 사람·송금 정보·송금 확인이 그 사람 기준으로)."""
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != host_uid:
+        return "방장만 바꿀 수 있어요"
+    if not any(m["name"] == uid for m in members_of(p)):
+        return "모집에 없는 사람이에요"
+    if uid != payer_of(p):
+        p["payer"], p["paid"] = uid, []
+        p.pop("pay", None)  # 받는 사람이 바뀌면 송금 정보도 새로 (예전 사람 계좌로 보내지 않게)
     return None
 
 
@@ -582,7 +656,7 @@ def close_party(s, pid, name, closed=True):
     return None
 
 
-def edit_party(s, pid, name, time, spot, max_n, note):
+def edit_party(s, pid, name, time, spot, max_n, note, place=None):
     p = find_party(s, pid)
     if not p:
         return "없어진 모집이에요"
@@ -594,6 +668,12 @@ def edit_party(s, pid, name, time, spot, max_n, note):
     if max_n < len(members_of(p)):
         return f"이미 {len(members_of(p))}명이 모였어요"
     p.update(time=time, spot=spot if spot in SPOTS else "", max=max_n, note=str(note)[:60])
+    if place and place != p["place"]:  # 식당이 바뀌면 고른 메뉴·정산 금액이 안 맞으니 비우고 다시 고르게
+        p["place"] = str(place)[:60]
+        for m in p["members"]:
+            if isinstance(m, dict):
+                m["menu"] = ""
+        p["paid"] = []
     return None
 
 
@@ -631,8 +711,8 @@ def set_pay(s, pid, name, toss, kakao, mode, total=None):
     p = find_party(s, pid)
     if not p:
         return "없어진 모집이에요"
-    if host_of(p) != name:
-        return "방장만 정산을 설정할 수 있어요"
+    if payer_of(p) != name:
+        return "결제 담당자만 정산을 설정할 수 있어요"
     if toss and not re.fullmatch(r"[\w.-]{1,30}", toss):
         return "토스 아이디는 toss.me/ 뒤에 붙는 영문·숫자만 적어주세요"
     if kakao and not re.fullmatch(r"https://qr\.kakaopay\.com/[A-Za-z0-9]{1,100}", kakao):
@@ -1493,8 +1573,10 @@ def main():
             with st.form("new_party", clear_on_submit=True, border=False):
                 names = sorted(by_name, key=lambda n: (by_name[n]["where"] != "교내", label(by_name[n])))
                 want = ss.get("party_place") or ss.get("decided")
-                place = st.selectbox("식당", names, index=names.index(want) if want in names else 0,
-                                     format_func=lambda n: f"{label(by_name[n])} · {by_name[n].get('gate') or by_name[n]['where']}")
+                shown_of = {n: f"{label(by_name[n])} · {by_name[n].get('gate') or by_name[n]['where']}" for n in names}
+                name_of = {v: k for k, v in shown_of.items()}
+                place = name_of[st.selectbox("식당", list(shown_of.values()),
+                                             index=names.index(want) if want in names else 0)]
                 a, b = st.columns(2)
                 when = a.time_input("몇 시에?", default_meet_time(now), step=600)
                 spot = b.selectbox("어디서 만나요?", SPOTS)
@@ -1515,25 +1597,52 @@ def main():
                             ss.pop("party_place", None)
                             st.rerun()
 
-        def manage(c, p):  # 방장 전용: 시간·장소·인원·한마디 수정, 마감, 삭제
+        def manage(c, p):  # 방장 전용: 식당·시간·장소·인원·한마디 수정, 결제 담당자, 마감, 삭제
             pid = p["id"]
             with c.popover("관리", use_container_width=True):
                 with st.form(f"edit_{pid}", border=False):
+                    places_ = {label(by_name[n]) + " · " + (by_name[n].get("gate") or by_name[n]["where"]): n
+                               for n in sorted(by_name, key=lambda n: (by_name[n]["where"] != "교내", label(by_name[n])))}
+                    keys_ = list(places_)
+                    cur_place = next((i for i, k in enumerate(keys_) if places_[k] == p["place"]), 0)
+                    pl = st.selectbox("식당", keys_, index=cur_place, help="바꾸면 모두의 메뉴가 비워져서 다시 골라야 해요")
                     t = st.time_input("시간", datetime.time.fromisoformat(p["time"]), step=600)
                     sp = st.selectbox("만나는 곳", SPOTS, index=SPOTS.index(p["spot"]) if p.get("spot") in SPOTS else 0)
                     mx = st.slider("최대 인원", 2, 8, p.get("max") or 4)
                     nt = st.text_input("한마디", p.get("note", ""), max_chars=60)
                     if st.form_submit_button("수정 저장", use_container_width=True):
-                        act(edit_party, pid, me, t.strftime("%H:%M"), sp, mx, nt.strip())
+                        act(edit_party, pid, me, t.strftime("%H:%M"), sp, mx, nt.strip(), places_[pl])
                         st.rerun()
+                ms_ = members_of(p)
+                if len(ms_) > 1:  # 결제 담당자 넘기기
+                    opts = [f"{m.get('nick') or m['name']}{' (나)' if m['name'] == me else ''}" for m in ms_]
+                    cur = [m["name"] for m in ms_].index(payer_of(p))
+                    st.selectbox("결제 담당자 (돈 받는 사람)", opts, index=cur, key=f"payer_{pid}",
+                                 on_change=lambda: act(set_payer, pid, me, ms_[opts.index(ss[f"payer_{pid}"])]["name"]))
                 st.button("다시 열기" if p.get("closed") else "모집 마감", key=f"cl_{pid}", use_container_width=True,
                           on_click=act, args=(close_party, pid, me, not p.get("closed")))
                 sure = st.checkbox("정말 삭제할게요 (되돌릴 수 없어요)", key=f"sure_{pid}")
                 st.button("모집 삭제", key=f"del_{pid}", type="primary", disabled=not sure, use_container_width=True,
                           on_click=act, args=(delete_party, pid, me))
 
-        def settle_panel(p, r, host):
-            pid, pay = p["id"], p.get("pay") or {}
+        def menu_editor(c, p, r):  # 내 메뉴 수정: 그 식당 메뉴판에서 고르거나 직접 적기
+            pid = p["id"]
+            mine_m = next((m["menu"] for m in members_of(p) if m["name"] == me), "")
+            names = [m["name"].split(" (")[0] for m in (r or {}).get("menus", [])]
+            price = {m["name"].split(" (")[0]: m["price"] for m in (r or {}).get("menus", [])}
+            cur = [x.strip() for x in mine_m.split(",") if x.strip()]
+            shown_m = {f"{n} · {won(price.get(n))}": n for n in names}
+            with c.popover("메뉴 수정", use_container_width=True):
+                st.caption(f"{label(r) if r else p['place']} 메뉴에서 내가 먹을 것만 바꿔요")
+                st.multiselect("메뉴판에서 고르기", list(shown_m), default=[k for k, v in shown_m.items() if v in cur],
+                               key=f"mm_{pid}", placeholder="여러 개 고를 수 있어요")
+                st.text_input("메뉴판에 없으면 직접 적기", ", ".join(x for x in cur if x not in names), key=f"mt_{pid}", max_chars=40)
+                st.button("저장", key=f"ms_{pid}", type="primary", use_container_width=True,
+                          on_click=lambda: act(set_menu, pid, me, ", ".join(
+                              [shown_m[k] for k in ss[f"mm_{pid}"]] + [x for x in [ss[f"mt_{pid}"].strip()] if x])))
+
+        def settle_panel(p, r):
+            pid, pay, host = p["id"], p.get("pay") or {}, payer_of(p)  # host = 돈 받는 결제 담당자
             rows = settle(p, r)
             if me == host:
                 with st.form(f"pay_{pid}", border=False):
@@ -1558,10 +1667,10 @@ def main():
                     st.checkbox(f"{nick_of(p, n)} 송금 받음", value=n in paid, key=k,
                                 on_change=lambda n=n, k=k: act(mark_paid, pid, me, n, ss[k]))
             elif me in paid:
-                st.caption("방장이 송금 완료로 표시했어요.")
+                st.caption("결제 담당자가 송금 완료로 표시했어요.")
                 return
             if not pay_links(pay):
-                st.caption("방장이 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
+                st.caption("결제 담당자가 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
                 return
             if me == host:  # 만나서 친구가 찍을 수 있게 QR
                 url = next(iter(pay_links(pay).values()))
@@ -1606,7 +1715,8 @@ def main():
                 f'<span class="chip">{e(r.get("gate") or r["where"]) if r else ""}</span></div>'
                 + (f'<div class="note">{e(p["note"])}</div>' if p.get("note") else "")
                 + '<div class="mem">' + "".join(
-                    f'<span><b>{e(shown(m.get("nick") or m["name"]))}</b>{"<em>방장</em>" if m["name"] == host else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
+                    f'<span><b>{e(shown(m.get("nick") or m["name"]))}</b>{"<em>방장</em>" if m["name"] == host else ""}'
+                    f'{"<em>결제</em>" if m["name"] == payer_of(p) and len(ms) > 1 else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
                     for m in ms) + "</div>"
                 + (f'<div class="bar"><i style="width:{min(100, 100 * len(ms) // p["max"])}%"></i></div>' if p.get("max") else "")
                 + "</div>",
@@ -1614,31 +1724,43 @@ def main():
             # 상황에 맞는 버튼만 골라 그 개수만큼 칸을 나눔 (휴대폰에서 글자가 안 찌그러지게)
             acts = []
             if mine:
-                acts.append(lambda c: c.button("메뉴 수정", key=f"upd_{p['id']}", disabled=not my_menu, use_container_width=True,
-                                               on_click=act, args=(join_party, p["id"], me, my_menu, my_nick)))
+                acts.append(lambda c, p=p, r=r: menu_editor(c, p, r))
                 acts.append(lambda c: c.button("나가기", key=f"out_{p['id']}", use_container_width=True,
                                                on_click=act, args=(leave_party, p["id"], me)))
-            elif st_ != "지난 모집":
-                acts.append(lambda c: c.button("참여하기", key=f"in_{p['id']}", type="primary", use_container_width=True,
-                                               disabled=not me or st_ != "모집중", on_click=act, args=(join_party, p["id"], me, my_menu, my_nick)))
+            elif st_ != "지난 모집":  # 초대 링크 없이 들어온 사람은 방장 수락이 필요
+                asked = any(x["name"] == me for x in p.get("pending", []))
+                acts.append(lambda c, asked=asked: c.button(
+                    "요청 보냄" if asked else "참여 요청", key=f"in_{p['id']}", type="primary", use_container_width=True,
+                    disabled=not me or asked or st_ != "모집중", on_click=act, args=(request_join, p["id"], me, my_nick, my_menu)))
             if me and me == host:
                 acts.append(lambda c: manage(c, p))
             if r:
                 acts.append(lambda c: c.link_button("길찾기", route_url(r), use_container_width=True))
             for c, draw in zip(st.columns(len(acts)), acts):
                 draw(c)
+            if me and me == host and p.get("pending"):  # 방장: 참여 요청 수락/거절
+                st.markdown(f'<div class="s" style="margin-top:6px">참여 요청 {len(p["pending"])}건</div>', unsafe_allow_html=True)
+                for q in p["pending"]:
+                    qa, qb, qc = st.columns([3, 1, 1])
+                    qa.markdown(f'<div style="padding-top:8px"><b>{e(q.get("nick") or "친구")}</b>'
+                                f'{" · " + e(q["menu"]) if q.get("menu") else ""}</div>', unsafe_allow_html=True)
+                    qb.button("수락", key=f"ok_{p['id']}_{q['name']}", type="primary", use_container_width=True,
+                              on_click=act, args=(answer_join, p["id"], me, q["name"], True))
+                    qc.button("거절", key=f"no_{p['id']}_{q['name']}", use_container_width=True,
+                              on_click=act, args=(answer_join, p["id"], me, q["name"], False))
             if mine and len(ms) > 1:
                 with st.expander("정산하기"):
-                    settle_panel(p, r, host)
-            with st.expander("친구 초대 링크", expanded=ss.get("focus_party") == p["id"] and mine):
-                msg = (f"🍚 {p['time']} {label(r) if r else p['place']} 같이 먹을 사람! ({count_text(p)})\n"
-                       f"{p.get('spot') or '식당 앞'}에서 만나요")
-                link = f"{base}/?party={p['id']}"
-                if public:  # 카카오 SDK는 콘솔에 등록한 도메인(배포 주소)에서만 동작
-                    components.html(kakao_share_html(msg, link), height=56)
-                st.caption("링크를 누르면 이 모집이 바로 열려요. 카톡 말고 다른 곳엔 아래 글을 복사해서 보내세요"
-                           + ("" if public else " (지금은 같은 와이파이에서만 열려요)"))
-                st.code(f"{msg}\n{link}", language=None)
+                    settle_panel(p, r)
+            if mine:  # 초대 링크(수락 없이 바로 참여)는 참여자만 볼 수 있음
+                with st.expander("친구 초대 링크", expanded=ss.get("focus_party") == p["id"]):
+                    msg = (f"🍚 {p['time']} {label(r) if r else p['place']} 같이 먹을 사람! ({count_text(p)})\n"
+                           f"{p.get('spot') or '식당 앞'}에서 만나요")
+                    link = f"{base}/?party={p['id']}"
+                    if public:  # 카카오 SDK는 콘솔에 등록한 도메인(배포 주소)에서만 동작
+                        components.html(kakao_share_html(msg, link), height=56)
+                    st.caption("링크를 누르면 이 모집이 바로 열려요. 카톡 말고 다른 곳엔 아래 글을 복사해서 보내세요"
+                               + ("" if public else " (지금은 같은 와이파이에서만 열려요)"))
+                    st.code(f"{msg}\n{link}", language=None)
 
 
 if __name__ == "__main__":
