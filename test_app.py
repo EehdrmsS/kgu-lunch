@@ -107,6 +107,27 @@ assert app.members_of(old) == [{"name": "동근", "menu": ""}] and app.host_of(o
 assert app.count_text(old) == "1명" and app.count_text({"max": 4, "members": ["a", "b"]}) == "2/4명"
 s2 = {"parties": [old]}
 assert app.join_party(s2, "old0", "철수") is None and app.close_party(s2, "old0", "동근") is None
+assert app.edit_party(s2, "old0", "철수", "12:30", "정문", 4, "") == "방장만 고칠 수 있어요"
+assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 1, "") == "이미 2명이 모였어요"
+assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 4, "늦지마") is None and s2["parties"][0]["time"] == "12:30"
+assert app.delete_party(s2, "old0", "철수") == "방장만 삭제할 수 있어요" and len(s2["parties"]) == 1
+assert app.delete_party(s2, "old0", "동근") is None and s2["parties"] == []
+assert app.delete_party(s2, "old0", "동근") == "없어진 모집이에요"
+
+# 정산
+rr = {"menus": [{"name": "A", "price": 5000}, {"name": "B", "price": 3000}, {"name": "C", "price": None}]}
+assert app.menu_total(rr, "A, B") == 8000 and app.menu_total(rr, "A, C") is None and app.menu_total(rr, "") is None
+s3 = {"parties": []}
+app.add_party(s3, "q1", "방장", "x", "12:00", menu="A")
+app.join_party(s3, "q1", "친구", "A, B")
+pp = s3["parties"][0]
+assert app.settle(pp, rr) == [("방장", 5000), ("친구", 8000)]  # 기본은 메뉴별
+assert app.set_pay(s3, "q1", "친구", "me", "", "N빵") == "방장만 정산을 설정할 수 있어요"
+assert app.set_pay(s3, "q1", "방장", "bad id!", "", "N빵") and app.set_pay(s3, "q1", "방장", "", "http://evil.com", "N빵")
+assert app.set_pay(s3, "q1", "방장", "me", "https://qr.kakaopay.com/Ej7abc", "N빵") is None
+assert app.settle(pp, rr) == [("방장", 6500), ("친구", 6500)]  # 13000 ÷ 2
+assert app.set_pay(s3, "q1", "방장", "me", "", "N빵", 10001) is None and app.settle(pp, rr)[0][1] == 5010  # 10원 올림
+assert app.pay_links(pp["pay"], 5010) == {"토스": "https://toss.me/me/5010"}
 
 import datetime as dt
 T = lambda h, m: dt.datetime(2026, 11, 10, h, m)

@@ -516,6 +516,74 @@ def close_party(s, pid, name, closed=True):
     return None
 
 
+def edit_party(s, pid, name, time, spot, max_n, note):
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != name:
+        return "방장만 고칠 수 있어요"
+    if max_n < len(members_of(p)):
+        return f"이미 {len(members_of(p))}명이 모였어요"
+    p.update(time=time, spot=spot, max=max_n, note=note)
+    return None
+
+
+# ---------- 정산: 메뉴별(각자 고른 메뉴값) 또는 N빵(총액 ÷ 인원) ----------
+def menu_total(r, menu):
+    """'치킨버거, 타코' → 메뉴판 가격 합. 메뉴가 없거나 가격 모르는 게 끼면 None."""
+    names = [x.strip() for x in (menu or "").split(",") if x.strip()]
+    prices = {m["name"]: m["price"] for m in (r or {}).get("menus", [])}
+    vals = [prices.get(n) for n in names]
+    return sum(vals) if names and None not in vals else None
+
+
+def settle(p, r):
+    """[(이름, 낼 돈 또는 None)]. N빵은 10원 단위 올림."""
+    ms, pay = members_of(p), p.get("pay") or {}
+    own = [(m["name"], menu_total(r, m["menu"])) for m in ms]
+    if pay.get("mode") != "N빵":
+        return own
+    total = pay.get("total") or (sum(v for _, v in own) if all(v is not None for _, v in own) else None)
+    each = -(-total // (len(ms) * 10)) * 10 if total else None
+    return [(n, each) for n, _ in own]
+
+
+def pay_links(pay, amount=None):
+    """{'토스': url, '카카오페이': url}. 토스는 toss.me/아이디/금액 이라 금액이 미리 채워짐."""
+    out = {}
+    if pay.get("toss"):
+        out["토스"] = f"https://toss.me/{urllib.parse.quote(pay['toss'])}" + (f"/{amount}" if amount else "")
+    if pay.get("kakao"):
+        out["카카오페이"] = pay["kakao"]
+    return out
+
+
+def set_pay(s, pid, name, toss, kakao, mode, total=None):
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != name:
+        return "방장만 정산을 설정할 수 있어요"
+    if toss and not re.fullmatch(r"[\w.-]{1,30}", toss):
+        return "토스 아이디는 toss.me/ 뒤에 붙는 영문·숫자만 적어주세요"
+    if kakao and not re.fullmatch(r"https://qr\.kakaopay\.com/[A-Za-z0-9]{1,100}", kakao):
+        return "카카오페이 링크는 https://qr.kakaopay.com/… 형식이어야 해요"
+    if total is not None and not 0 < total <= 1_000_000:
+        return "총 금액을 확인해주세요"
+    p["pay"] = {"toss": toss, "kakao": kakao, "mode": mode, "total": total}
+    return None
+
+
+def delete_party(s, pid, name):
+    p = find_party(s, pid)
+    if not p:
+        return "없어진 모집이에요"
+    if host_of(p) != name:
+        return "방장만 삭제할 수 있어요"
+    s["parties"].remove(p)
+    return None
+
+
 def host_of(p):
     return p.get("host") or (members_of(p) or [{"name": ""}])[0]["name"]  # 예전 형식은 첫 사람이 방장
 
@@ -698,7 +766,17 @@ p,li{color:var(--sub)}
 @media (max-width:640px){.hero h1{font-size:22px}.grid2{grid-template-columns:1fr}
   .stButton>button,.stLinkButton>a{padding:.5rem .4rem;font-size:13px}
   [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button p{font-size:13px}}
-</style>"""
+.settle{margin:4px 0 10px}.settle div{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.settle div:last-child{border-bottom:none}.settle em{font-style:normal;font-size:11px;color:var(--brand);font-weight:700;margin-left:6px}
+/* 휴대폰: 터치 영역 넉넉히, 입력창 16px(아이폰 자동 확대 방지), 하단 탭바에 가리지 않게 */
+@media (max-width:640px){.block-container{padding:.4rem .75rem 8rem}
+  .stButton>button,.stLinkButton>a,[data-testid="stFormSubmitButton"]>button{min-height:44px}
+  input,textarea,[data-baseweb="select"] *{font-size:16px!important}
+  .card{padding:14px 15px}.party .tm{font-size:18px}.place{font-size:19px}}
+</style>""".replace(  # 배포 서버의 최신 Streamlit은 data-testid 이름이 바뀜(column→stColumn 등) → 둘 다 맞춤
+    '[data-testid="element-container"]', ':is([data-testid="element-container"],[data-testid="stElementContainer"])').replace(
+    '[data-testid="column"]', ':is([data-testid="column"],[data-testid="stColumn"])').replace(
+    '.stButton>button[kind="primary"]', ':is(.stButton>button[kind="primary"],[data-testid="stBaseButton-primary"])')
 
 
 def main():
@@ -835,7 +913,7 @@ def main():
         no_types = st.multiselect("먹기 싫은 종류", all_types, key="rec_types", label_visibility="collapsed",
                                   placeholder="먹기 싫은 종류 (예: 면류, 돈까스)")
         no_words = st.text_input("빼고 싶은 단어", key="rec_words", label_visibility="collapsed", max_chars=60,
-                                 placeholder="빼고 싶은 재료·단어 (예: 소고기, 해산물, 매운, 김치)")
+                                 placeholder="빼고 싶은 재료 (예: 해산물, 매운)")
         _, used, _ = expand_words(re.split(r"[,\s]+", no_words))
         if used:
             st.caption("함께 빼는 메뉴 → " + " / ".join(
@@ -1101,7 +1179,62 @@ def main():
                         ss.pop("party_place", None)
                         st.rerun()
 
+        def manage(c, p):  # 방장 전용: 시간·장소·인원·한마디 수정, 마감, 삭제
+            pid = p["id"]
+            with c.popover("관리", use_container_width=True):
+                with st.form(f"edit_{pid}", border=False):
+                    t = st.time_input("시간", datetime.time.fromisoformat(p["time"]), step=600)
+                    sp = st.selectbox("만나는 곳", SPOTS, index=SPOTS.index(p["spot"]) if p.get("spot") in SPOTS else 0)
+                    mx = st.slider("최대 인원", 2, 8, p.get("max") or 4)
+                    nt = st.text_input("한마디", p.get("note", ""), max_chars=60)
+                    if st.form_submit_button("수정 저장", use_container_width=True):
+                        act(edit_party, pid, me, t.strftime("%H:%M"), sp, mx, nt.strip())
+                        st.rerun()
+                st.button("다시 열기" if p.get("closed") else "모집 마감", key=f"cl_{pid}", use_container_width=True,
+                          on_click=act, args=(close_party, pid, me, not p.get("closed")))
+                sure = st.checkbox("정말 삭제할게요 (되돌릴 수 없어요)", key=f"sure_{pid}")
+                st.button("모집 삭제", key=f"del_{pid}", type="primary", disabled=not sure, use_container_width=True,
+                          on_click=act, args=(delete_party, pid, me))
+
+        def settle_panel(p, r, host):
+            pid, pay = p["id"], p.get("pay") or {}
+            rows = settle(p, r)
+            if me == host:
+                with st.form(f"pay_{pid}", border=False):
+                    mode = st.radio("나누는 방법", ["메뉴별", "N빵"], horizontal=True,
+                                    index=1 if pay.get("mode") == "N빵" else 0)
+                    total = st.number_input("N빵 총 금액 (0이면 메뉴값 합계)", 0, 1_000_000, pay.get("total") or 0, step=1000)
+                    toss = st.text_input("토스 아이디", pay.get("toss", ""), placeholder="toss.me/ 뒤에 오는 아이디")
+                    kakao = st.text_input("카카오페이 송금 링크", pay.get("kakao", ""),
+                                          placeholder="카카오페이 → 송금 → 송금코드 → 링크 복사")
+                    if st.form_submit_button("정산 정보 저장", use_container_width=True):
+                        act(set_pay, pid, me, toss.strip().removeprefix("toss.me/"), kakao.strip(), mode, int(total) or None)
+                        st.rerun()
+            st.markdown('<div class="settle">' + "".join(
+                f'<div><span>{e(n)}{" <em>받는 사람</em>" if n == host else ""}</span>'
+                f'<b>{won(v) if v is not None else "금액 미정"}</b></div>' for n, v in rows) + "</div>", unsafe_allow_html=True)
+            if not pay_links(pay):
+                st.caption("방장이 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
+                return
+            if me == host:  # 만나서 친구가 찍을 수 있게 QR
+                url = next(iter(pay_links(pay).values()))
+                components.html(
+                    '<div id="q" style="display:flex;justify-content:center"></div>'
+                    '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>'
+                    f'<script>new QRCode(document.getElementById("q"),{{text:{json.dumps(url)},width:170,height:170}})</script>',
+                    height=185)
+                st.caption("친구가 휴대폰 카메라로 찍으면 송금 화면이 열려요.")
+            else:
+                amt = dict(rows).get(me)
+                for i, (k, url) in enumerate(pay_links(pay, amt).items()):
+                    st.link_button(f"{k}로 {won(amt) if amt and k == '토스' else ''} 보내기".replace("  ", " "), url,
+                                   type="primary" if i == 0 else "secondary", use_container_width=True)
+                if amt and "카카오페이" in pay_links(pay):
+                    st.caption(f"카카오페이는 금액({won(amt)})을 직접 입력해야 해요.")
+
         section("오늘 모집", f"{len(today_parties)}건")
+        if me and st.toggle("내 모집만 보기", key="only_mine"):
+            today_parties = [p for p in today_parties if any(m["name"] == me for m in members_of(p))]
         if not today_parties:
             st.markdown('<div class="card" style="text-align:center;color:#8B95A1">아직 모집이 없어요. 첫 모집을 올려보세요.</div>',
                         unsafe_allow_html=True)
@@ -1135,12 +1268,14 @@ def main():
                 acts.append(lambda c: c.button("참여하기", key=f"in_{p['id']}", type="primary", use_container_width=True,
                                                disabled=not me or st_ != "모집중", on_click=act, args=(join_party, p["id"], me, my_menu)))
             if me and me == host:
-                acts.append(lambda c: c.button("다시 열기" if p.get("closed") else "마감", key=f"cl_{p['id']}",
-                                               use_container_width=True, on_click=act, args=(close_party, p["id"], me, not p.get("closed"))))
+                acts.append(lambda c: manage(c, p))
             if r:
                 acts.append(lambda c: c.link_button("길찾기", route_url(r), use_container_width=True))
             for c, draw in zip(st.columns(len(acts)), acts):
                 draw(c)
+            if mine and len(ms) > 1:
+                with st.expander("💸 정산하기"):
+                    settle_panel(p, r, host)
             with st.expander("친구 초대 링크", expanded=ss.get("focus_party") == p["id"] and mine):
                 st.caption("오른쪽 위 복사 버튼 → 카톡에 붙여넣기. 링크를 누르면 이 모집이 바로 열려요"
                            + ("" if public else " (지금은 같은 와이파이에서만 열려요)"))
