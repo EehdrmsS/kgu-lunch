@@ -817,7 +817,7 @@ p,li{color:var(--sub)}
 .prof{display:flex;align-items:center;gap:14px}.pf-av{flex:0 0 44px;height:44px;border-radius:50%;background:var(--soft);color:var(--brand);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center}.pf-av.off{background:#E5E8EB}
 .pf-pay{font-size:12px;color:var(--brand);font-weight:600;margin-top:4px}.fh{font-size:13px;font-weight:700;color:var(--sub);margin:6px 0 -6px}
 .pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
-.kbtn{display:block;text-align:center;background:#FEE500;color:#191919!important;text-decoration:none!important;font-weight:600;border-radius:12px;padding:.7rem;margin:2px 0 6px}.kbtn:hover{filter:brightness(.97)}
+.kbtn{display:block;text-align:center;background:#FEE500;color:#191919!important;text-decoration:none!important;font-weight:600;border-radius:12px;padding:.7rem;margin:2px 0 6px}.kbtn:hover{filter:brightness(.97)}.kcap{font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
 .sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
@@ -1118,9 +1118,10 @@ def main():
     def login_button(party=""):  # party: 돌아올 초대 모집 id, "g"면 같이 먹기 화면, 비우면 홈
         if not KAKAO_KEY:
             st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
-        else:  # 새 탭이 아니라 지금 탭에서 카카오로 이동 (Streamlit 링크 버튼은 항상 새 탭)
+        else:  # 배포 서버의 앱 화면(iframe)은 페이지 이동(top)이 막혀 있고 새 탭만 허용 → 새 탭에서 로그인
             url = kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party))
-            st.markdown(f'<a class="kbtn" href="{e(url)}" target="_top">카카오로 로그인</a>', unsafe_allow_html=True)
+            st.markdown(f'<a class="kbtn" href="{e(url)}" target="_blank" rel="noopener">카카오로 로그인</a>'
+                        '<div class="kcap">새 탭에서 로그인돼요. 원래 탭은 새로고침하면 로그인 상태가 돼요</div>', unsafe_allow_html=True)
 
     # ---- 하단 탭바 ----
     with st.container():
