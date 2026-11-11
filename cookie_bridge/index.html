@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<body>
+<!-- 로그인 유지 쿠키 다리: 브라우저에서 쿠키를 읽어 파이썬으로 넘기고, 파이썬이 시키면 굽거나 지움.
+     Streamlit Cloud 프록시가 서버로 가는 쿠키를 지워서(st.context.cookies가 비어 있음) 브라우저 쪽에서 읽어야 함. -->
+<script>
+  const send = (type, data) => parent.postMessage(Object.assign({isStreamlitMessage: true, type}, data), "*");
+  let last;
+  window.addEventListener("message", (ev) => {
+    if (!ev.data || ev.data.type !== "streamlit:render") return;
+    const a = ev.data.args || {};
+    if (!/^[\w]+$/.test(a.name || "")) return;
+    if (typeof a.set === "string") {  // "" 이면 지우기, 값이면 굽기 (값은 base64url·점·16진수만)
+      const ok = /^[\w.-]*$/.test(a.set);
+      if (ok) document.cookie = `${a.name}=${a.set}; path=/; max-age=${a.set ? a.age : 0}; SameSite=Lax; Secure`;
+    }
+    const hit = document.cookie.split("; ").find((c) => c.startsWith(a.name + "="));
+    const value = hit ? hit.slice(a.name.length + 1) : "";
+    if (value !== last) {
+      last = value;
+      send("streamlit:setComponentValue", {value, dataType: "json"});
+    }
+    send("streamlit:setFrameHeight", {height: 0});
+  });
+  send("streamlit:componentReady", {apiVersion: 1});
+</script>
+</body>
+</html>

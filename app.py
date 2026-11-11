@@ -937,6 +937,7 @@ def main():
 
     import streamlit as st
     import streamlit.components.v1 as components
+    cookie_bridge = components.declare_component("cookie_bridge", path=str(DIR / "cookie_bridge"))
 
     st.set_page_config(page_title="경기대 점심 뭐먹지", page_icon="🍚", layout="centered", initial_sidebar_state="collapsed")
     st.markdown(APP_CSS, unsafe_allow_html=True)
@@ -958,7 +959,7 @@ def main():
         else:
             try:
                 ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), KAKAO_SECRET)
-                ss._cookie, ss._logged_out = make_login_token(ss.user["id"], ss.user["nick"]), False
+                ss.cookie_set, ss._logged_out = make_login_token(ss.user["id"], ss.user["nick"]), False
             except Exception as ex:  # 키·시크릿·Redirect URI 설정 오류, 코드 재사용 등 → 이유는 서버 로그에만
                 body = ex.read().decode("utf-8", "replace")[:300] if hasattr(ex, "read") else ""
                 print("kakao login failed:", repr(ex), body, flush=True)
@@ -968,20 +969,18 @@ def main():
                 ss._linked = ss.focus_party = back
         qp.clear()  # 주소창에 인가 코드가 남지 않게
 
-    # 로그인 유지: 새로고침해도 서명된 쿠키로 자동 로그인 (쿠키 읽기는 최신 Streamlit만, 로컬 1.32는 건너뜀)
-    if not ss.get("user") and not ss.get("_logged_out"):
-        jar = (getattr(ctx, "cookies", None) or {}) if ctx else {}
-        u = read_login_token(jar.get(LOGIN_COOKIE))
-        if not ss.get("_cookie_dbg"):  # 진단용(값은 안 찍음): 서버가 받은 쿠키 이름과 검증 결과
-            ss._cookie_dbg = True
-            print("login cookie check:", sorted(jar.keys()), "has:", LOGIN_COOKIE in jar, "valid:", bool(u), flush=True)
+    # 로그인 유지: 브라우저 쿠키를 작은 컴포넌트(cookie_bridge/index.html)로 읽고 굽고 지움.
+    # 처음 실행엔 None이고, 컴포넌트가 쿠키를 읽어 보내면 한 번 더 실행됨.
+    # cookie_set: None이면 그대로 두기, 값이면 굽기, ""이면 지우기
+    try:
+        cookie_val = cookie_bridge(name=LOGIN_COOKIE, set=ss.get("cookie_set"), age=LOGIN_DAYS * 86400,
+                                   key="cookie_bridge", default=None)
+    except Exception:  # shortcut: 로컬 Anaconda엔 컴포넌트에 필요한 pyarrow가 없어 로그인 유지만 건너뜀 (배포 서버엔 있음)
+        cookie_val = None
+    if not ss.get("user") and not ss.get("_logged_out") and cookie_val:
+        u = read_login_token(cookie_val)
         if u:
             ss.user = u
-    if "_cookie" in ss:  # 쿠키 굽기/지우기: 같은 사이트 iframe에서 document.cookie로
-        tok = ss.pop("_cookie")
-        attrs = f"path=/; max-age={LOGIN_DAYS * 86400 if tok else 0}; SameSite=Lax; Secure"
-        components.html(f'<script>try{{(window.parent||window).document.cookie="{LOGIN_COOKIE}={tok}; {attrs}"}}'
-                        f'catch(e){{document.cookie="{LOGIN_COOKIE}={tok}; {attrs}"}}</script>', height=0)
 
     # 초대 링크(?party=아이디)로 들어오면 그 모집으로 바로 이동
     pid_link = st.query_params.get("party")
@@ -1117,7 +1116,7 @@ def main():
     def logout():  # 세션 로그아웃 + 쿠키 삭제. 이번 접속의 쿠키 값은 그대로라 자동 로그인도 막아 둠
         ss.pop("user", None)
         ss.pop("_pref_for", None)
-        ss._logged_out, ss._cookie = True, ""
+        ss._logged_out, ss.cookie_set = True, ""
 
     def login_button(party=""):  # party: 돌아올 초대 모집 id, "g"면 같이 먹기 화면, 비우면 홈
         if not KAKAO_KEY:
