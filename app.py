@@ -1046,6 +1046,29 @@ def main():
         st.markdown('<div class="hero" style="padding:16px 20px"><div class="top"><span>같이 먹기</span>'
                     f'<span>{now_hm} 기준</span></div><h1 style="font-size:20px;margin-top:8px">혼밥 말고,<br>같이 먹을 사람 구해요</h1></div>',
                     unsafe_allow_html=True)
+        # 초대 링크로 들어왔고 아직 안 낀 모집이면: 배민 함께주문처럼 이름 + 메뉴만 고르면 참여
+        inv = find_party(state, ss.get("_linked") or "")
+        if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == ss.get("me", "").strip() for m in members_of(inv)):
+            ir = by_name.get(inv["place"])
+            with st.container(border=True):
+                st.markdown(f'<div class="sec">💌 {e(host_of(inv))}님의 초대<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
+                            f'<div class="pl" style="font-weight:700">{e(label(ir) if ir else inv["place"])}</div>'
+                            f'<div style="color:#8B95A1;font-size:14px">{e(inv.get("spot") or "식당 앞")}에서 만나요</div>',
+                            unsafe_allow_html=True)
+                with st.form("invite", border=False):
+                    nm = st.text_input("내 이름", value=ss.get("me", ""), max_chars=20, placeholder="친구들이 알아볼 이름")
+                    opts = [f'{m["name"]} · {won(m["price"])}' for m in (ir or {}).get("menus", [])]
+                    picks = st.multiselect("먹고 싶은 메뉴", opts, placeholder="메뉴판에서 골라요 (여러 개 가능)")
+                    if st.form_submit_button("이 메뉴로 참여하기", type="primary", use_container_width=True):
+                        nm, menu = nm.strip(), ", ".join(p.split(" · ")[0] for p in picks)
+                        res = []
+                        if nm:
+                            update_state(lambda s: res.append(join_party(s, inv["id"], nm, menu)))
+                        if not nm or res[0]:
+                            st.error(res[0] if nm else "이름을 적어주세요")
+                        else:
+                            ss.me, ss.my_menu = nm, menu
+                            st.rerun()
         c1, c2 = st.columns(2)
         me = c1.text_input("내 이름", key="me", max_chars=20, placeholder="친구들이 알아볼 이름").strip()
         my_menu = c2.text_input("내가 먹을 메뉴 (선택)", key="my_menu", max_chars=40, placeholder="예: 숑숑카츠").strip()
