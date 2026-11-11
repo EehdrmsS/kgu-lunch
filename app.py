@@ -970,7 +970,11 @@ def main():
 
     # 로그인 유지: 새로고침해도 서명된 쿠키로 자동 로그인 (쿠키 읽기는 최신 Streamlit만, 로컬 1.32는 건너뜀)
     if not ss.get("user") and not ss.get("_logged_out"):
-        u = read_login_token((getattr(ctx, "cookies", None) or {}).get(LOGIN_COOKIE)) if ctx else None
+        jar = (getattr(ctx, "cookies", None) or {}) if ctx else {}
+        u = read_login_token(jar.get(LOGIN_COOKIE))
+        if not ss.get("_cookie_dbg"):  # 진단용(값은 안 찍음): 서버가 받은 쿠키 이름과 검증 결과
+            ss._cookie_dbg = True
+            print("login cookie check:", sorted(jar.keys()), "has:", LOGIN_COOKIE in jar, "valid:", bool(u), flush=True)
         if u:
             ss.user = u
     if "_cookie" in ss:  # 쿠키 굽기/지우기: 같은 사이트 iframe에서 document.cookie로
