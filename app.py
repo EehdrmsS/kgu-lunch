@@ -1,13 +1,16 @@
 """경기대 수원캠퍼스 점심 추천기.  실행: streamlit run app.py --server.address 0.0.0.0"""
 import datetime
+import hmac
 import json
 import os
 import random
 import re
+import secrets
 import socket
 import threading
 import urllib.parse
 from pathlib import Path
+from time import time as epoch
 
 DIR = Path(__file__).parent
 DATA = json.loads((DIR / "data.json").read_text("utf-8"))
@@ -467,17 +470,31 @@ def find_party(s, pid):
     return next((p for p in s["parties"] if p.get("id") == pid), None)
 
 
-def add_party(s, pid, host, place, time, spot="", max_n=4, note="", menu="", day=None):
-    s["parties"].append({"id": pid, "date": day or today(), "place": place, "time": time, "spot": spot,
-                         "max": max_n, "note": note, "host": host, "closed": False,
-                         "members": [{"name": host, "menu": menu}]})
+# 서버 쪽 한도: 화면의 max_chars는 브라우저에서만 막으니 저장 전에 다시 자름
+MAX_PER_HOST, MAX_PER_DAY = 5, 300
 
 
-def join_party(s, pid, name, menu=""):
+def add_party(s, pid, host, place, time, spot="", max_n=4, note="", menu="", day=None, nick=""):
+    day = day or today()
+    if not re.fullmatch(r"\d\d:\d\d", time or ""):
+        return "시간을 확인해주세요"
+    todays = [p for p in s["parties"] if p["date"] == day]
+    if len(todays) >= MAX_PER_DAY:
+        return "오늘 모집이 너무 많아요"
+    if sum(host_of(p) == host for p in todays) >= MAX_PER_HOST:
+        return f"모집은 하루 {MAX_PER_HOST}개까지 올릴 수 있어요"
+    s["parties"].append({"id": pid, "date": day, "place": str(place)[:60], "time": time,
+                         "spot": spot if spot in SPOTS else "", "max": min(8, max(2, int(max_n))),
+                         "note": str(note)[:60], "host": host, "closed": False,
+                         "members": [{"name": host, "nick": str(nick)[:20], "menu": str(menu)[:100]}]})
+    return None
+
+
+def join_party(s, pid, name, menu="", nick=""):
     p = find_party(s, pid)
     if not p:
         return "없어진 모집이에요"
-    ms = members_of(p)
+    menu, ms = str(menu)[:100], members_of(p)
     for m in ms:
         if m["name"] == name:  # 이미 참여 중이면 메뉴만 바꿈
             m["menu"] = menu or m["menu"]
@@ -487,8 +504,13 @@ def join_party(s, pid, name, menu=""):
         return "마감된 모집이에요"
     if len(ms) >= p.get("max", 99):
         return "자리가 다 찼어요"
-    p["members"] = ms + [{"name": name, "menu": menu}]
+    p["members"] = ms + [{"name": name, "nick": str(nick)[:20], "menu": menu}]
     return None
+
+
+def nick_of(p, name):
+    """화면에 보일 이름: 로그인 계정 id 대신 카카오 닉네임 (예전 데이터는 이름 그대로)."""
+    return next((m.get("nick") or m["name"] for m in members_of(p) if m["name"] == name), name)
 
 
 def leave_party(s, pid, name):
@@ -522,9 +544,12 @@ def edit_party(s, pid, name, time, spot, max_n, note):
         return "없어진 모집이에요"
     if host_of(p) != name:
         return "방장만 고칠 수 있어요"
+    if not re.fullmatch(r"\d\d:\d\d", time or ""):
+        return "시간을 확인해주세요"
+    max_n = min(8, max(2, int(max_n)))
     if max_n < len(members_of(p)):
         return f"이미 {len(members_of(p))}명이 모였어요"
-    p.update(time=time, spot=spot, max=max_n, note=note)
+    p.update(time=time, spot=spot if spot in SPOTS else "", max=max_n, note=str(note)[:60])
     return None
 
 
@@ -640,6 +665,59 @@ def share_base(host=None):
     return lan_url()
 
 
+# ---------- 카카오 로그인 (OAuth): 비밀번호·토큰은 저장 안 하고 카카오 회원번호·닉네임만 씀 ----------
+KAKAO_KEY = os.environ.get("KAKAO_REST_KEY") or (
+    (DIR / ".kakao_key").read_text("utf-8").strip() if (DIR / ".kakao_key").exists() else "")
+SECRET = (os.environ.get("APP_SECRET") or secrets.token_hex(32)).encode()  # 없으면 서버 켤 때마다 새로 만듦
+
+
+def login_redirect(host=None):
+    """카카오 개발자 콘솔에 등록한 Redirect URI와 글자 하나까지 같아야 함."""
+    base = share_base(host)
+    return base if base != lan_url() else f"http://{host or 'localhost:8501'}"
+
+
+def sign_state(party="", now=None):
+    """로그인 후 돌아올 초대 모집 id + 시각에 서명 → 남이 만든 로그인 요청(CSRF)·변조를 막음."""
+    body = f"{party}.{int(now or epoch())}"
+    return body + "." + hmac.new(SECRET, body.encode(), "sha256").hexdigest()[:32]
+
+
+def check_state(state, now=None, max_age=600):
+    """서명이 맞고 10분 안이면 초대 모집 id(없으면 ''), 아니면 None."""
+    try:
+        party, ts, sig = str(state).rsplit(".", 2)
+    except ValueError:
+        return None
+    good = hmac.new(SECRET, f"{party}.{ts}".encode(), "sha256").hexdigest()[:32]
+    if not hmac.compare_digest(sig, good) or not ts.isdigit() or (now or epoch()) - int(ts) > max_age:
+        return None
+    return party if re.fullmatch(r"[0-9a-z]{0,12}", party) else None
+
+
+def kakao_auth_url(key, redirect, state):
+    return "https://kauth.kakao.com/oauth/authorize?" + urllib.parse.urlencode(
+        {"client_id": key, "redirect_uri": redirect, "response_type": "code", "state": state})
+
+
+def kakao_user(key, code, redirect, client_secret=""):
+    """인가 코드 → {'id': 'k회원번호', 'nick': 닉네임}. 액세스 토큰은 여기서만 쓰고 버림."""
+    import urllib.request
+    form = {"grant_type": "authorization_code", "client_id": key, "redirect_uri": redirect, "code": code}
+    if client_secret:
+        form["client_secret"] = client_secret
+    req = urllib.request.Request("https://kauth.kakao.com/oauth/token", urllib.parse.urlencode(form).encode(),
+                                 {"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        token = json.load(r)["access_token"]
+    req = urllib.request.Request("https://kapi.kakao.com/v2/user/me", headers={"Authorization": "Bearer " + token})
+    with urllib.request.urlopen(req, timeout=10) as r:
+        me = json.load(r)
+    profile = (me.get("kakao_account") or {}).get("profile") or {}
+    nick = (me.get("properties") or {}).get("nickname") or profile.get("nickname") or "친구"
+    return {"id": f"k{int(me['id'])}", "nick": str(nick)[:20]}
+
+
 def lan_url():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -714,14 +792,14 @@ p,li{color:var(--sub)}
   width:min(720px,100%);background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);
   display:flex;flex-wrap:nowrap;justify-content:space-around;gap:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.05)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:6px 0;border-radius:12px}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div:first-child{display:none}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div:first-child,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div>div:first-child:not([data-testid]){display:none}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked) p{color:var(--brand);font-weight:800}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked){background:var(--soft)}
 /* 칩 모양 라디오 (매장·종류 고르기) */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"]{gap:6px;flex-wrap:wrap}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin:0}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label>div:first-child{display:none}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label>div:first-child,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label>div>div:first-child:not([data-testid]){display:none}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label:has(input:checked){background:var(--ink);border-color:var(--ink)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label:has(input:checked) p{color:#fff}
@@ -793,6 +871,26 @@ def main():
     if ss.get("nav") not in PAGES:  # 탭 이름이 바뀐 뒤 예전 값이 남아 있으면 초기화
         ss.pop("nav", None)
 
+    ctx = getattr(st, "context", None)  # 최신 Streamlit(배포 서버)에만 있음, 로컬 1.32엔 없음
+    host = ctx.headers.get("host") if ctx else None
+    public = share_base(host) != lan_url()
+
+    # 카카오 로그인에서 돌아옴 (?code=…&state=…): 서명 확인 → 회원번호·닉네임만 세션에 보관
+    qp = st.query_params
+    if qp.get("code") and qp.get("state"):
+        back = check_state(qp.get("state"))
+        if back is None:
+            st.error("로그인 요청이 만료됐어요. 다시 로그인해 주세요.")
+        else:
+            try:
+                ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), os.environ.get("KAKAO_CLIENT_SECRET", ""))
+            except Exception:  # 키·Redirect URI 설정 오류, 코드 재사용 등 (자세한 이유는 화면에 안 보여줌)
+                st.error("카카오 로그인에 실패했어요. 잠시 후 다시 해주세요.")
+            ss.nav = PAGES[3]
+            if back:
+                ss._linked = ss.focus_party = back
+        qp.clear()  # 주소창에 인가 코드가 남지 않게
+
     # 초대 링크(?party=아이디)로 들어오면 그 모집으로 바로 이동
     pid_link = st.query_params.get("party")
     if pid_link and ss.get("_linked") != pid_link:
@@ -800,7 +898,8 @@ def main():
 
     with st.sidebar:
         st.markdown("### 데이터")
-        if st.button("학식 정보 새로 가져오기", use_container_width=True):
+        # 서버 크롤링은 내 컴퓨터에서만 (배포 서버에서 아무나 반복 실행 못 하게)
+        if not public and st.button("학식 정보 새로 가져오기", use_container_width=True):
             import crawl
             with st.spinner("경기대 홈페이지에서 가져오는 중..."):
                 crawl.main()
@@ -1124,39 +1223,51 @@ def main():
         st.markdown('<div class="hero" style="padding:16px 20px"><div class="top"><span>같이 먹기</span>'
                     f'<span>{now_hm} 기준</span></div><h1 style="font-size:20px;margin-top:8px">혼밥 말고,<br>같이 먹을 사람 구해요</h1></div>',
                     unsafe_allow_html=True)
-        # 초대 링크로 들어왔고 아직 안 낀 모집이면: 배민 함께주문처럼 이름 + 메뉴만 고르면 참여
+        user = ss.get("user")  # 카카오 로그인 → {"id": "k회원번호", "nick": 닉네임}
+        me, my_nick = (user["id"], user["nick"]) if user else ("", "")
+
+        def login_button(party=""):
+            if not KAKAO_KEY:
+                st.warning("카카오 로그인 설정(KAKAO_REST_KEY)이 아직 없어요.")
+            else:
+                st.link_button("카카오로 로그인", kakao_auth_url(KAKAO_KEY, login_redirect(host), sign_state(party)),
+                               type="primary", use_container_width=True)
+
+        # 초대 링크로 들어왔고 아직 안 낀 모집이면: 배민 함께주문처럼 로그인 → 메뉴만 고르면 참여
         inv = find_party(state, ss.get("_linked") or "")
-        if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == ss.get("me", "").strip() for m in members_of(inv)):
+        if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == me for m in members_of(inv)):
             ir = by_name.get(inv["place"])
             with st.container(border=True):
-                st.markdown(f'<div class="sec">💌 {e(host_of(inv))}님의 초대<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
+                st.markdown(f'<div class="sec">💌 {e(nick_of(inv, host_of(inv)))}님의 초대<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
                             f'<div class="pl" style="font-weight:700">{e(label(ir) if ir else inv["place"])}</div>'
                             f'<div style="color:#8B95A1;font-size:14px">{e(inv.get("spot") or "식당 앞")}에서 만나요</div>',
                             unsafe_allow_html=True)
-                with st.form("invite", border=False):
-                    nm = st.text_input("내 이름", value=ss.get("me", ""), max_chars=20, placeholder="친구들이 알아볼 이름")
-                    opts = [f'{m["name"]} · {won(m["price"])}' for m in (ir or {}).get("menus", [])]
-                    picks = st.multiselect("먹고 싶은 메뉴", opts, placeholder="메뉴판에서 골라요 (여러 개 가능)")
-                    if st.form_submit_button("이 메뉴로 참여하기", type="primary", use_container_width=True):
-                        nm, menu = nm.strip(), ", ".join(p.split(" · ")[0] for p in picks)
-                        res = []
-                        if nm:
-                            update_state(lambda s: res.append(join_party(s, inv["id"], nm, menu)))
-                        if not nm or res[0]:
-                            st.error(res[0] if nm else "이름을 적어주세요")
-                        else:
-                            ss.me, ss.my_menu = nm, menu
-                            st.rerun()
-        c1, c2 = st.columns(2)
-        me = c1.text_input("내 이름", key="me", max_chars=20, placeholder="친구들이 알아볼 이름").strip()
-        my_menu = c2.text_input("내가 먹을 메뉴 (선택)", key="my_menu", max_chars=40, placeholder="예: 숑숑카츠").strip()
-        if not me:
-            st.caption("이름을 먼저 적어야 모집하거나 참여할 수 있어요.")
+                if not user:
+                    st.caption("카카오로 로그인하면 바로 메뉴를 골라 참여할 수 있어요.")
+                    login_button(inv["id"])
+                else:
+                    with st.form("invite", border=False):
+                        opts = [f'{m["name"]} · {won(m["price"])}' for m in (ir or {}).get("menus", [])]
+                        picks = st.multiselect("먹고 싶은 메뉴", opts, placeholder="메뉴판에서 골라요 (여러 개 가능)")
+                        if st.form_submit_button(f"{my_nick}(으)로 참여하기", type="primary", use_container_width=True):
+                            menu, res = ", ".join(p.split(" · ")[0] for p in picks), []
+                            update_state(lambda s: res.append(join_party(s, inv["id"], me, menu, my_nick)))
+                            if res[0]:
+                                st.error(res[0])
+                            else:
+                                ss.my_menu = menu
+                                st.rerun()
+        if user:
+            a, b = st.columns([3, 1])
+            a.markdown(f'<div style="padding-top:8px">👋 <b>{e(my_nick)}</b>님으로 로그인했어요</div>', unsafe_allow_html=True)
+            b.button("로그아웃", on_click=lambda: ss.pop("user", None), use_container_width=True)
+        elif not inv:
+            st.caption("카카오로 로그인해야 모집하거나 참여할 수 있어요. (새로고침하면 다시 로그인해야 해요)")
+            login_button()
+        my_menu = st.text_input("내가 먹을 메뉴 (선택)", key="my_menu", max_chars=40, placeholder="예: 숑숑카츠").strip()
 
         today_parties = sorted((p for p in state["parties"] if p["date"] == today()), key=lambda p: p["time"])
-        ctx = getattr(st, "context", None)  # 최신 Streamlit(배포 서버)에만 있음, 로컬 1.32엔 없음
-        base = share_base(ctx.headers.get("host") if ctx else None)
-        public = base != lan_url()
+        base = share_base(host)
         with st.expander("새 모집 만들기", expanded=bool(ss.get("party_place")) or not today_parties):
             with st.form("new_party", clear_on_submit=True, border=False):
                 names = sorted(by_name, key=lambda n: (by_name[n]["where"] != "교내", label(by_name[n])))
@@ -1171,13 +1282,17 @@ def main():
                 note = b.text_input("한마디 (선택)", max_chars=60, placeholder="예: 3층 강의 끝나고 바로!")
                 if st.form_submit_button("모집 올리기", use_container_width=True):
                     if not me:
-                        st.toast("위에 이름을 먼저 적어주세요")
+                        st.toast("카카오로 먼저 로그인해 주세요")
                     else:
-                        pid = uuid.uuid4().hex[:6]
-                        update_state(lambda s: add_party(s, pid, me, place, when.strftime("%H:%M"), spot, max_n, note.strip(), my_menu))
-                        ss.focus_party = pid
-                        ss.pop("party_place", None)
-                        st.rerun()
+                        pid, res = uuid.uuid4().hex[:6], []
+                        update_state(lambda s: res.append(add_party(s, pid, me, place, when.strftime("%H:%M"), spot, max_n,
+                                                                    note.strip(), my_menu, nick=my_nick)))
+                        if res[0]:
+                            st.error(res[0])
+                        else:
+                            ss.focus_party = pid
+                            ss.pop("party_place", None)
+                            st.rerun()
 
         def manage(c, p):  # 방장 전용: 시간·장소·인원·한마디 수정, 마감, 삭제
             pid = p["id"]
@@ -1211,7 +1326,7 @@ def main():
                         act(set_pay, pid, me, toss.strip().removeprefix("toss.me/"), kakao.strip(), mode, int(total) or None)
                         st.rerun()
             st.markdown('<div class="settle">' + "".join(
-                f'<div><span>{e(n)}{" <em>받는 사람</em>" if n == host else ""}</span>'
+                f'<div><span>{e(nick_of(p, n))}{" <em>받는 사람</em>" if n == host else ""}</span>'
                 f'<b>{won(v) if v is not None else "금액 미정"}</b></div>' for n, v in rows) + "</div>", unsafe_allow_html=True)
             if not pay_links(pay):
                 st.caption("방장이 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
@@ -1252,7 +1367,7 @@ def main():
                 f'<span class="chip">{e(r.get("gate") or r["where"]) if r else ""}</span></div>'
                 + (f'<div class="note">{e(p["note"])}</div>' if p.get("note") else "")
                 + '<div class="mem">' + "".join(
-                    f'<span><b>{e(m["name"])}</b>{"<em>방장</em>" if m["name"] == host else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
+                    f'<span><b>{e(m.get("nick") or m["name"])}</b>{"<em>방장</em>" if m["name"] == host else ""}{" · " + e(m["menu"]) if m.get("menu") else ""}</span>'
                     for m in ms) + "</div>"
                 + (f'<div class="bar"><i style="width:{min(100, 100 * len(ms) // p["max"])}%"></i></div>' if p.get("max") else "")
                 + "</div>",
@@ -1261,12 +1376,12 @@ def main():
             acts = []
             if mine:
                 acts.append(lambda c: c.button("메뉴 수정", key=f"upd_{p['id']}", disabled=not my_menu, use_container_width=True,
-                                               on_click=act, args=(join_party, p["id"], me, my_menu)))
+                                               on_click=act, args=(join_party, p["id"], me, my_menu, my_nick)))
                 acts.append(lambda c: c.button("나가기", key=f"out_{p['id']}", use_container_width=True,
                                                on_click=act, args=(leave_party, p["id"], me)))
             elif st_ != "지난 모집":
                 acts.append(lambda c: c.button("참여하기", key=f"in_{p['id']}", type="primary", use_container_width=True,
-                                               disabled=not me or st_ != "모집중", on_click=act, args=(join_party, p["id"], me, my_menu)))
+                                               disabled=not me or st_ != "모집중", on_click=act, args=(join_party, p["id"], me, my_menu, my_nick)))
             if me and me == host:
                 acts.append(lambda c: manage(c, p))
             if r:

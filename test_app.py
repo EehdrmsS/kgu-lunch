@@ -108,7 +108,13 @@ assert app.count_text(old) == "1명" and app.count_text({"max": 4, "members": ["
 s2 = {"parties": [old]}
 assert app.join_party(s2, "old0", "철수") is None and app.close_party(s2, "old0", "동근") is None
 assert app.edit_party(s2, "old0", "철수", "12:30", "정문", 4, "") == "방장만 고칠 수 있어요"
-assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 1, "") == "이미 2명이 모였어요"
+assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 1, "") is None and s2["parties"][0]["max"] == 2  # 2~8로 맞춤
+s2["parties"][0]["members"].append({"name": "영희", "menu": ""})
+assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 2, "") == "이미 3명이 모였어요"
+s2["parties"][0]["members"].pop()
+assert app.edit_party(s2, "old0", "동근", "1230; x", "정문", 4, "") == "시간을 확인해주세요"
+assert app.edit_party(s2, "old0", "동근", "12:30", "<script>", 4, "x" * 500) is None
+assert s2["parties"][0]["spot"] == "" and len(s2["parties"][0]["note"]) == 60  # 목록 밖 장소·긴 글은 막음
 assert app.edit_party(s2, "old0", "동근", "12:30", "정문", 4, "늦지마") is None and s2["parties"][0]["time"] == "12:30"
 assert app.delete_party(s2, "old0", "철수") == "방장만 삭제할 수 있어요" and len(s2["parties"]) == 1
 assert app.delete_party(s2, "old0", "동근") is None and s2["parties"] == []
@@ -247,4 +253,24 @@ _os.environ.pop("APP_URL")
 diff = app.now_kst() - _dt.datetime.now(_dt.timezone.utc).replace(tzinfo=None)
 assert abs(diff - _dt.timedelta(hours=9)) < _dt.timedelta(minutes=1), diff
 assert app.today() == app.now_kst().date().isoformat()
+
+# 카카오 로그인 state 서명
+st_ = app.sign_state("ab12cd", now=1000)
+assert app.check_state(st_, now=1100) == "ab12cd" and app.check_state(app.sign_state(now=1000), now=1000) == ""
+assert app.check_state(st_, now=1000 + 601) is None  # 10분 지나면 만료
+assert app.check_state(st_.replace("ab12cd", "zz99zz"), now=1100) is None  # 모집 id 바꿔치기
+assert app.check_state("garbage", now=1) is None and app.check_state("a.b.c", now=1) is None
+u = app.kakao_auth_url("KEY", "https://x.app", st_)
+assert u.startswith("https://kauth.kakao.com/oauth/authorize?") and "redirect_uri=https%3A%2F%2Fx.app" in u
+_os.environ.pop("APP_URL", None)
+assert app.login_redirect("localhost:8501") == "http://localhost:8501" and app.login_redirect(None) == "http://localhost:8501"
+assert app.login_redirect("kgu-lunch.streamlit.app") == "https://kgu-lunch.streamlit.app"
+# 모집 한도
+s4 = {"parties": []}
+for i in range(app.MAX_PER_HOST):
+    assert app.add_party(s4, f"h{i}", "k1", "x", "12:00") is None
+assert app.add_party(s4, "h9", "k1", "x", "12:00") == f"모집은 하루 {app.MAX_PER_HOST}개까지 올릴 수 있어요"
+assert app.add_party(s4, "h9", "k2", "x", "12:00", max_n=99, menu="m" * 999) is None
+assert s4["parties"][-1]["max"] == 8 and len(s4["parties"][-1]["members"][0]["menu"]) == 100
+assert app.nick_of({"members": [{"name": "k1", "nick": "동근", "menu": ""}]}, "k1") == "동근"
 print("ok")
