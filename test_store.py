@@ -65,4 +65,22 @@ try:
 except OSError:
     pass
 assert db[1]["visits"]["A"] == 3
+# 카카오 연결 해제 대기열: 꺼내면서 지움, 이상한 값은 무시
+queue = [{"uid": "k11"}, {"uid": "k12"}, {"uid": "evil"}]
+deleted = []
+
+
+def fake_unlink(method, url, key, body=None, prefer=None):
+    if method == "GET":
+        return list(queue)
+    deleted.append(url.split("uid=in.")[1])
+    return None
+
+
+store._req = fake_unlink
+assert store.pop_unlinked() == ["k11", "k12"] and deleted == ["(k11,k12)"]
+queue.clear()
+assert store.pop_unlinked() == [] and len(deleted) == 1  # 없으면 DELETE 안 부름
+os.environ.pop("SUPABASE_URL")
+assert store.pop_unlinked() == []  # 로컬
 print("store ok")

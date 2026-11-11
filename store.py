@@ -78,3 +78,17 @@ def update(file, fn):
         _db_write(sb, s)
         _cache = s
         return copy.deepcopy(s)
+
+
+def pop_unlinked():
+    """카카오 연결 해제 웹훅(Supabase Edge Function kakao-unlink)이 쌓아 둔 회원번호를 꺼내고 지움.
+    로컬(파일)에서는 항상 빈 목록."""
+    sb = _supabase()
+    if not sb:
+        return []
+    url, key = sb
+    rows = _req("GET", f"{url}/rest/v1/unlinked?select=uid", key) or []
+    uids = [u for u in (str(r.get("uid", "")) for r in rows) if u[:1] == "k" and u[1:].isdigit()]  # 쉼표 등 섞이면 무시
+    if uids:
+        _req("DELETE", f"{url}/rest/v1/unlinked?uid=in.({','.join(uids)})", key)
+    return uids

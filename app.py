@@ -1137,6 +1137,13 @@ def main():
     by_name = {r["name"]: r for r in rs}
     places = dict(place_groups(sorted(rs, key=lambda r: (r["where"] != "교내", r.get("gate") or "", r.get("court") or "", r["name"]))))
     state = load_state()
+    if not ss.get("_unlink_checked"):  # 세션마다 한 번: 카카오에서 연결을 끊은 사람 정보 지우기
+        ss._unlink_checked = True
+        try:
+            for uid in store.pop_unlinked():
+                state = update_state(lambda s, uid=uid: delete_me(s, uid))
+        except OSError as ex:
+            print("unlink check failed:", ex, flush=True)
     if any(stale(p, today()) for p in state["parties"]):
         state = update_state(drop_legacy)
     visits = state["visits"]
