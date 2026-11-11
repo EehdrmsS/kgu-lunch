@@ -15,17 +15,11 @@ from time import time as epoch
 DIR = Path(__file__).parent
 DATA = json.loads((DIR / "data.json").read_text("utf-8"))
 STATE_FILE = Path(os.environ.get("LUNCH_STATE") or DIR / "state.json")  # 테스트할 땐 다른 파일로
-CENTER = "오늘 점심"
 _lock = threading.Lock()  # 여러 친구가 동시에 눌러도 state.json이 꼬이지 않게
 
 
 # ---------- 순수 로직 (test_app.py에서 검사) ----------
 CATS = ["학식", "한식", "분식", "중식", "일식·아시안", "양식", "패스트푸드", "기타"]  # crawl.py KAKAO_CAT과 맞춤
-
-
-def mandalart_cells(cats=CATS):
-    """3x3 만다라트: 가운데 칸이 주제, 나머지 8칸이 후보 카테고리."""
-    return cats[:4] + [CENTER] + cats[4:]
 
 
 def filter_menus(restaurants, cats=None, lo=0, hi=10**9, where=None):
@@ -40,17 +34,21 @@ def won(p):
     return "가격 미확인" if p is None else f"{p:,}원"
 
 
-def candidate_groups(picked, cands):
-    """고른 카테고리마다 식당 전부 [(식당, [메뉴...])]. 가격 아는 식당 → 최저가 싼 순."""
-    out = {}
-    for c in picked:
-        groups = {}
-        for r, m in cands:
-            if r["category"] == c:
-                groups.setdefault(r["name"], (r, []))[1].append(m)
-        low = lambda g: min((m["price"] for m in g[1] if m["price"] is not None), default=None)
-        out[c] = sorted(groups.values(), key=lambda g: (low(g) is None, low(g) or 0))
-    return out
+def pick_list(rs, cat="전체", where="전체", budget=None):
+    """고르기 목록 [(식당, 예산 안 식사 메뉴들)]. 예산 안 메뉴가 없으면 빠짐(가격 미확인 메뉴는 남김).
+    최저가 싼 순 → 가격 모르는 곳은 뒤로."""
+    out = []
+    for r in rs:
+        if cat != "전체" and r["category"] != cat:
+            continue
+        if where == "교내" and r["where"] != "교내" or where in ("정문", "후문") and r.get("gate") != where:
+            continue
+        ms = [m for m in r["menus"] if (m.get("type") or "") not in NOT_MEAL
+              and (m["price"] is None or budget is None or m["price"] <= budget)]
+        if ms:
+            out.append((r, ms))
+    low = lambda rm: min((m["price"] for m in rm[1] if m["price"]), default=None)
+    return sorted(out, key=lambda rm: (low(rm) is None, low(rm) or 0, rm[0]["name"]))
 
 
 def price_range(menus):
@@ -77,58 +75,6 @@ def with_today(rs, data, day):
         main = [x for x in d if x != "쌀밥"][:3]
         return m | {"name": f"{m['name']} (오늘: {', '.join(main)}…)", "dishes": list(d)}  # 재료 거르기용 전체 반찬
     return [r | {"menus": [tag(r, m) for m in r["menus"]]} for r in rs]
-
-
-BOARD_CSS = """<style>
-.bd{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
-.bd-row{display:flex;gap:8px;border:1px solid rgba(255,75,75,.45);border-radius:10px;padding:6px;background:rgba(255,75,75,.04)}
-.bd-cat{flex:0 0 88px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;
-  background:rgba(255,75,75,.6);color:#fff;font-weight:700;font-size:14px;text-align:center;padding:6px 2px}
-.bd-cat small{font-weight:400;opacity:.85;font-size:11px}
-.bd-chips{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;padding:2px 0}
-.bd-chip{padding:6px 11px;border-radius:999px;background:rgba(255,75,75,.13);font-size:13px;line-height:1.25}
-.bd-chip small{opacity:.6;margin-left:5px;font-size:11px}
-.bd-chip.chk{outline:2px solid rgba(255,75,75,.9);background:rgba(255,75,75,.28)}
-.bd-none{opacity:.6;font-size:13px;padding:6px}
-.bd-row.grow{animation:bdGrow .45s ease-out both;transform-origin:left center}
-.bd-row.grow .bd-chip{animation:bdPop .3s ease-out both}
-.bd-chip.flash{animation:bdFlash .25s ease-in-out both}
-.bd-chip.pick{animation:bdPick 1s ease-in-out both}
-@keyframes bdGrow{from{transform:scaleX(.2);opacity:0}to{transform:scaleX(1);opacity:1}}
-@keyframes bdPop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes bdFlash{50%{background:#ffd54a;color:#000;transform:scale(1.08)}}
-@keyframes bdPick{0%{transform:scale(1)}50%{transform:scale(1.2);background:#ff4b4b;color:#fff}
-  100%{transform:scale(1);background:#ff4b4b;color:#fff;outline:3px solid #ffd54a}}
-@media (max-width:600px){.bd-cat{flex-basis:62px;font-size:12px}.bd-chip{font-size:12px;padding:5px 9px}}
-@media (prefers-reduced-motion:reduce){.bd *,.bd-row{animation-duration:.01s!important;animation-delay:0s!important}}
-</style>"""
-
-
-def board_html(groups, new=(), chosen=(), pick_name=None, roll=False):
-    """카테고리별 식당 이름판. 카테고리 한 줄 + 식당 이름 칩(개수 제한 없이 줄바꿈).
-    new: 새로 켠 카테고리(펼침 애니메이션), chosen: ②에서 고른 식당, pick_name: 🎲 결과, roll: 방금 굴렸으면 룰렛 연출."""
-    from html import escape as e
-    order = [r["name"] for c in groups for r, _ in groups[c]]
-    step = min(0.08, 1.6 / max(len(order), 1))  # 식당이 많아도 룰렛은 1.6초 안에 끝나게
-    out = [BOARD_CSS, '<div class="bd">']
-    for cat, items in groups.items():
-        chips = []
-        for k, (r, _) in enumerate(items):
-            cls, delay = "bd-chip" + (" chk" if r["name"] in chosen else ""), ""
-            if cat in new:
-                delay = f"animation-delay:{0.2 + min(k, 20) * 0.04:.2f}s"
-            if r["name"] == pick_name:
-                cls += " pick"
-                delay = f"animation-delay:{len(order) * step + 0.1:.2f}s" if roll else ""
-            elif roll:
-                cls += " flash"
-                delay = f"animation-delay:{order.index(r['name']) * step:.2f}s"
-            tag = r.get("court") or r.get("gate") or r["where"]
-            chips.append(f'<span class="{cls}" style="{delay}">{e(r["name"])}<small>{e(tag)}</small></span>')
-        body = "".join(chips) or '<span class="bd-none">이 가격대엔 식당이 없어요</span>'
-        out.append(f'<div class="bd-row{" grow" if cat in new else ""}"><div class="bd-cat">{e(cat)}'
-                   f'<small>{len(items)}곳</small></div><div class="bd-chips">{body}</div></div>')
-    return "".join(out) + "</div>"
 
 
 CAT_COLORS = {"학식": "#e8453c", "한식": "#f59f00", "분식": "#e64980", "중식": "#7048e8", "일식·아시안": "#1c7ed6",
@@ -758,27 +704,25 @@ header[data-testid="stHeader"]{background:transparent;height:0}
 h1,h2,h3{letter-spacing:-.03em;color:var(--ink)}
 p,li{color:var(--sub)}
 /* 버튼 */
-.stButton>button,.stLinkButton>a,[data-testid="stFormSubmitButton"]>button{border-radius:14px;border:1px solid var(--line);background:#fff;
-  color:var(--ink);font-weight:600;padding:.55rem .9rem;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:transform .08s,box-shadow .15s}
-.stButton>button:hover,.stLinkButton>a:hover{border-color:#ffd2c0;color:var(--brand);box-shadow:0 4px 14px rgba(255,90,31,.12)}
+.stButton>button,.stLinkButton>a,[data-testid="stFormSubmitButton"]>button,[data-testid="stPopover"] button{border-radius:12px;border:none;background:#F2F4F6;
+  color:#333D4B;font-weight:600;padding:.6rem .9rem;box-shadow:none;transition:transform .08s,background .15s}
+.stButton>button:hover,.stLinkButton>a:hover{background:#E5E8EB;color:var(--ink)}
 .stButton>button:active{transform:scale(.97)}
 .stButton>button[kind="primary"],[data-testid="stFormSubmitButton"]>button{background:var(--brand);color:#fff;border:none}
 .stButton>button[kind="primary"]:hover{color:#fff;background:#E84E15}
 /* 입력창 */
 .stTextInput input,.stSelectbox [data-baseweb="select"]>div,.stMultiSelect [data-baseweb="select"]>div,.stTimeInput input,.stNumberInput input{border-radius:12px!important;background:#fff}
-[data-testid="stExpander"]{background:#fff;border:1px solid var(--line);border-radius:16px}
-[data-testid="stForm"]{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1rem}
+[data-testid="stExpander"]{background:#fff;border:none;border-radius:16px}[data-testid="stExpander"] details{border:none}
+[data-testid="stForm"]{background:#fff;border:none;border-radius:16px;padding:1rem}
 /* 카드 */
-.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin:6px 0 10px;box-shadow:0 2px 10px rgba(16,24,40,.04)}
-.sec{font-size:17px;font-weight:700;color:var(--ink);margin:18px 2px 6px;letter-spacing:-.02em}
-.sec small{font-size:12px;color:var(--muted);font-weight:500;margin-left:6px}
+.card{background:#fff;border:none;border-radius:16px;padding:16px 18px;margin:6px 0 10px}
+.card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
+.sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
+.sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
+.ph{margin:10px 2px 18px}.ph h2{font-size:24px;font-weight:700;color:var(--ink);letter-spacing:-.03em;margin:0;padding:0;line-height:1.35}
+.ph p{font-size:14px;color:var(--muted);margin:4px 0 0}
 .chip{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--bg);color:var(--sub);font-size:12px;font-weight:600;margin:2px 4px 2px 0}
 .chip.brand{background:var(--soft);color:var(--brand)}.chip.ok{background:#E8F7EE;color:#12B76A}.chip.no{background:#F2F4F6;color:var(--muted)}
-.hero{background:var(--brand);color:#fff;border-radius:24px;padding:20px 22px 22px;margin:4px 0 12px;
-  box-shadow:none}
-.hero .top{display:flex;justify-content:space-between;align-items:center;font-size:13px;opacity:.95;font-weight:600}
-.hero h1{color:#fff;font-size:26px;margin:14px 0 4px;padding:0;line-height:1.25}
-.hero p{color:rgba(255,255,255,.9);margin:0;font-size:14px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .today{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 16px}
 .today .l{font-size:13px;color:var(--brand);font-weight:700}.today .t{font-size:11px;color:var(--muted);margin-left:4px;font-weight:500}
@@ -821,6 +765,12 @@ p,li{color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label:has(input:checked){background:var(--ink);border-color:var(--ink)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker) div[role="radiogroup"] label:has(input:checked) p{color:#fff}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker){gap:.2rem}  /* 칩 줄 사이 간격을 좁게 */
+/* 종류 칩 한 줄: 넘치면 옆으로 밀어서 봄 (배달앱 카테고리처럼) */
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker.scroll) div[role="radiogroup"]{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker.scroll) div[role="radiogroup"]::-webkit-scrollbar{display:none}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker.scroll) div[role="radiogroup"]>*{flex:0 0 auto}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .chips-marker.scroll) div[role="radiogroup"] label p{white-space:nowrap}
 /* 키오스크 메뉴 카드 */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) [data-testid="stHorizontalBlock"]{flex-wrap:nowrap;gap:8px}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) [data-testid="column"]{min-width:0!important;flex:1 1 0!important}
@@ -837,12 +787,12 @@ p,li{color:var(--sub)}
 .traybar b{color:#FFB38A;font-size:14px}
 /* 추천 목록 줄 */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button{width:100%;display:block;text-align:left;
-  border-radius:16px;padding:12px 14px;margin-bottom:-6px}
+  border-radius:16px;padding:14px 16px;margin-bottom:-8px;background:#fff}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button p{margin:0;font-size:12px;color:var(--muted);white-space:normal}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button p:first-child{font-size:15px;color:var(--ink);margin-bottom:3px}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button p em{font-style:normal;color:var(--brand);font-weight:800;margin-left:6px}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker.on) .stButton>button{border:2px solid var(--brand);background:var(--soft)}
-.pickcard{border:2px solid var(--brand)}.pickcard .k{font-size:12px;color:var(--brand);font-weight:700}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker.on) .stButton>button{box-shadow:inset 0 0 0 2px var(--brand);background:#fff}
+.pickcard{border:none;margin-top:4px}.pickcard .k{font-size:12px;color:var(--brand);font-weight:700}
 .pickcard .pm{font-size:20px;font-weight:800;color:var(--ink);margin-top:2px}.pickcard .pm span{font-size:16px;color:var(--brand);margin-left:8px}
 .pickcard .pr{font-size:15px;font-weight:700;color:var(--ink);margin-top:10px}.pickcard .pr .chip{margin-left:6px}
 .pickcard .s{font-size:12px;color:var(--muted);margin-top:3px}
@@ -959,9 +909,12 @@ def main():
     def section(title, sub=""):
         st.markdown(f'<div class="sec">{title}{f"<small>{sub}</small>" if sub else ""}</div>', unsafe_allow_html=True)
 
-    def chips_radio(label_, options, key):
+    def page_head(title, sub=""):  # 실제 앱처럼: 색 박스 대신 굵은 제목 + 회색 설명 한 줄
+        st.markdown(f'<div class="ph"><h2>{title}</h2>{f"<p>{sub}</p>" if sub else ""}</div>', unsafe_allow_html=True)
+
+    def chips_radio(label_, options, key, scroll=False):
         with st.container():
-            st.markdown('<span class="chips-marker"></span>', unsafe_allow_html=True)
+            st.markdown(f'<span class="chips-marker{" scroll" if scroll else ""}"></span>', unsafe_allow_html=True)
             return st.radio(label_, options, key=key, horizontal=True, label_visibility="collapsed")
 
     def result_card(r, m, key):
@@ -1014,10 +967,7 @@ def main():
     # =============== 🏠 홈 ===============
     if page == PAGES[0]:
         n_in = sum(1 for p in places.values() if p[0]["where"] == "교내")
-        st.markdown(f'<div class="hero"><div class="top"><span>경기대 점심</span>'
-                    f'<span>{now.month}월 {now.day}일 ({WEEKDAY[now.weekday()]})</span></div>'
-                    f'<h1>오늘 점심,<br>뭐 먹을까요?</h1><p>수원캠퍼스 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳</p></div>',
-                    unsafe_allow_html=True)
+        page_head("오늘 점심 뭐 먹지", f"{now.month}월 {now.day}일 {WEEKDAY[now.weekday()]}요일 · 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳")
         # ---- 조건 추천: 조건 → 추천 목록 → 메뉴를 누르면 식당·혼잡도 → 결정 / 메뉴판 / 같이 먹기 ----
         for k in REC_KEYS:  # 다른 탭 다녀와도 조건 유지
             if k not in ss and "_" + k in ss:
@@ -1025,7 +975,7 @@ def main():
         ss.setdefault("rec_budget", "1만원")
         all_types = sorted({m.get("type") or r["category"] for r in rs for m in r["menus"]} - NOT_MEAL)
         section("조건으로 추천받기", "예산 · 위치 · 싫은 것")
-        budget_lbl = chips_radio("예산", list(BUDGETS), key="rec_budget")
+        budget_lbl = chips_radio("예산", list(BUDGETS), key="rec_budget", scroll=True)
         where = chips_radio("위치", ["전체", "교내", "정문", "후문"], key="rec_where")
         no_types = st.multiselect("먹기 싫은 종류", all_types, key="rec_types", label_visibility="collapsed",
                                   placeholder="먹기 싫은 종류 (예: 면류, 돈까스)")
@@ -1089,7 +1039,7 @@ def main():
         if open_parties:
             st.markdown('<div class="card">' + "".join(
                 f'<div class="row"><div><div class="n">{e(p["time"])} · {e(label(by_name[p["place"]]) if p["place"] in by_name else p["place"])}</div>'
-                f'<div class="s">{e(", ".join(m["name"] for m in members_of(p)))}</div></div>'
+                f'<div class="s">{e(", ".join(m.get("nick") or m["name"] for m in members_of(p)))}</div></div>'
                 f'<div class="p">{count_text(p)}</div></div>' for p in open_parties[:3]) + "</div>",
                 unsafe_allow_html=True)
         st.button("같이 먹기 보러가기" if open_parties else "내가 먼저 모집하기", use_container_width=True,
@@ -1191,56 +1141,48 @@ def main():
                 c3.button("같이 먹을 사람", use_container_width=True, on_click=go,
                           args=(PAGES[3],), kwargs={"party_place": rest_names[0], "my_menu": tray_text(ss.tray)})
 
-    # =============== 🧩 고르기 (만다라트) ===============
+    # =============== 고르기: 배달앱처럼 필터 칩 → 식당 목록 → 누르면 메뉴·결정 ===============
     elif page == PAGES[2]:
-        st.markdown('<div class="hero" style="padding:16px 20px"><div class="top"><span>만다라트로 고르기</span></div>'
-                    '<h1 style="font-size:20px;margin-top:8px">당기는 칸을 켜면<br>식당이 펼쳐져요</h1></div>', unsafe_allow_html=True)
-        lo, hi = st.slider("가격대(원)", 0, 20000, (0, 12000), step=500, key="price2")
-        picked = []
-        cells = mandalart_cells()
-        for row in range(0, len(cells), 3):
-            for col, cell in zip(st.columns(3), cells[row:row + 3]):
-                if cell == CENTER:
-                    col.button(CENTER, disabled=True, use_container_width=True)
-                elif col.toggle(cell, key=f"cat_{cell}"):
-                    picked.append(cell)
-
-        groups = candidate_groups(picked, filter_menus(rs, cats=picked, lo=lo, hi=hi))
-        new = [c for c in picked if c not in ss.get("prev_cats", [])]  # 새로 켠 줄만 애니메이션
-        ss.prev_cats = picked
-        board = st.empty()  # 식당 이름판: 아래 🎲 결과까지 반영해서 마지막에 그림
-        menus_of = {r["name"]: ms for c in groups for r, ms in groups[c]}
-        rest_of = {r["name"]: r for c in groups for r, _ in groups[c]}
-        names = list(menus_of)
-        roll, chosen_r = False, []
-        if picked:
-            chosen_r = st.multiselect("식당", names, key="pick_rest", label_visibility="collapsed",
-                                      placeholder="② 식당 좁히기 (안 고르면 위 판 전부가 후보)",
-                                      format_func=lambda n: f"{label(rest_of[n])} · {price_range(menus_of[n])}")
-            chosen_m = []
-            if chosen_r:
-                opts = [(n, i) for n in chosen_r for i in range(len(menus_of[n]))]
-                chosen_m = st.multiselect("메뉴", opts, key="pick_menu", label_visibility="collapsed",
-                                          placeholder="③ 메뉴 좁히기 (안 고르면 고른 식당 메뉴 전부)",
-                                          format_func=lambda o: f"{menus_of[o[0]][o[1]]['name']} · "
-                                                                f"{won(menus_of[o[0]][o[1]]['price'])} — {o[0]}")
-            pool = ([(rest_of[n], menus_of[n][i]) for n, i in chosen_m]
-                    or [(rest_of[n], m) for n in (chosen_r or names) for m in menus_of[n]])
-            if not pool:
-                st.warning("이 가격대엔 후보가 없어요. 가격대를 넓혀보세요.")
-            elif st.button("이 중에서 골라줘", type="primary", use_container_width=True):
-                ss.suggest = random.choice(pool)
-                roll = True
-        sug = ss.get("suggest")
-        board.markdown(board_html(groups, new, chosen_r, sug and sug[0]["name"], roll), unsafe_allow_html=True)
-        if sug:
-            result_card(*sug, key="mand")
+        page_head("고르기", "종류와 예산을 정하면 갈 만한 곳만 추려 드려요")
+        ss.setdefault("pk_budget", "1만원")
+        cat = chips_radio("종류", ["전체"] + CATS, key="pk_cat", scroll=True)
+        where = chips_radio("위치", ["전체", "교내", "정문", "후문"], key="pk_where")
+        budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
+        lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
+        a, b = st.columns([3, 1])
+        a.markdown(f'<div class="sec" style="margin-top:14px">{len(lst)}곳<small>싼 메뉴 순</small></div>', unsafe_allow_html=True)
+        if b.button("랜덤", disabled=not lst, use_container_width=True):
+            ss.pk_sel = random.choice(lst)[0]["name"]
+        if not lst:
+            st.markdown('<div class="card empty">조건에 맞는 식당이 없어요.<br>예산을 올리거나 위치를 전체로 바꿔보세요.</div>',
+                        unsafe_allow_html=True)
+        for r, ms in lst:
+            sel = ss.get("pk_sel") == r["name"]
+            top = [m["name"].split(" (")[0] for m in sorted(ms, key=lambda m: m["price"] or 10**9)[:2]]
+            with st.container():
+                st.markdown(f'<span class="rec-marker{" on" if sel else ""}"></span>', unsafe_allow_html=True)
+                st.button(f"**{label(r)}** *{price_range(ms)}*\n\n{r['category']} · {r.get('gate') or r['where']} · {', '.join(top)}",
+                          key=f"pk|{r['name']}", use_container_width=True,
+                          on_click=lambda n=r["name"]: ss.__setitem__("pk_sel", None if ss.get("pk_sel") == n else n))
+            if sel:
+                rows = sorted(ms, key=lambda m: (m["price"] is None, m["price"] or 0))
+                st.markdown('<div class="card pickcard">' + "".join(
+                    f'<div class="row"><div class="n">{e(m["name"].split(" (")[0])}</div><div class="p">{won(m["price"])}</div></div>'
+                    for m in rows[:8])
+                    + (f'<div class="s" style="padding-top:8px">외 {len(rows) - 8}개는 메뉴판에서</div>' if len(rows) > 8 else "")
+                    + f'<div class="crowdrow">{crowd_html(r)}</div></div>', unsafe_allow_html=True)
+                c1, c2 = st.columns(2)
+                c1.button("여기로 결정", key=f"pk_ok|{r['name']}", type="primary", use_container_width=True,
+                          on_click=decide, args=([r["name"]],))
+                c2.button("같이 먹을 사람 찾기", key=f"pk_party|{r['name']}", use_container_width=True,
+                          on_click=go, args=(PAGES[3],), kwargs={"party_place": r["name"]})
+                c1, c2 = st.columns(2)
+                c1.button("메뉴판", key=f"pk_menu|{r['name']}", use_container_width=True, on_click=open_menu, args=(r["name"],))
+                c2.link_button("길찾기", route_url(r), use_container_width=True)
 
     # =============== 👫 같이 먹기 ===============
     else:
-        st.markdown('<div class="hero" style="padding:16px 20px"><div class="top"><span>같이 먹기</span>'
-                    f'<span>{now_hm} 기준</span></div><h1 style="font-size:20px;margin-top:8px">혼밥 말고,<br>같이 먹을 사람 구해요</h1></div>',
-                    unsafe_allow_html=True)
+        page_head("같이 먹기", f"점심 같이 먹을 사람을 구해요 · {now_hm} 기준")
         user = ss.get("user")  # 카카오 로그인 → {"id": "k회원번호", "nick": 닉네임}
         me, my_nick = (user["id"], user["nick"]) if user else ("", "")
 
@@ -1256,7 +1198,7 @@ def main():
         if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == me for m in members_of(inv)):
             ir = by_name.get(inv["place"])
             with st.container(border=True):
-                st.markdown(f'<div class="sec">💌 {e(nick_of(inv, host_of(inv)))}님의 초대<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
+                st.markdown(f'<div class="sec">{e(nick_of(inv, host_of(inv)))}님이 초대했어요<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
                             f'<div class="pl" style="font-weight:700">{e(label(ir) if ir else inv["place"])}</div>'
                             f'<div style="color:#8B95A1;font-size:14px">{e(inv.get("spot") or "식당 앞")}에서 만나요</div>',
                             unsafe_allow_html=True)
@@ -1277,7 +1219,7 @@ def main():
                                 st.rerun()
         if user:
             a, b = st.columns([3, 1])
-            a.markdown(f'<div style="padding-top:8px">👋 <b>{e(my_nick)}</b>님으로 로그인했어요</div>', unsafe_allow_html=True)
+            a.markdown(f'<div style="padding-top:8px"><b>{e(my_nick)}</b>님으로 로그인됨</div>', unsafe_allow_html=True)
             b.button("로그아웃", on_click=lambda: ss.pop("user", None), use_container_width=True)
         elif not inv:
             st.caption("카카오로 로그인해야 모집하거나 참여할 수 있어요. (새로고침하면 다시 로그인해야 해요)")
@@ -1407,7 +1349,7 @@ def main():
             for c, draw in zip(st.columns(len(acts)), acts):
                 draw(c)
             if mine and len(ms) > 1:
-                with st.expander("💸 정산하기"):
+                with st.expander("정산하기"):
                     settle_panel(p, r, host)
             with st.expander("친구 초대 링크", expanded=ss.get("focus_party") == p["id"] and mine):
                 st.caption("오른쪽 위 복사 버튼 → 카톡에 붙여넣기. 링크를 누르면 이 모집이 바로 열려요"

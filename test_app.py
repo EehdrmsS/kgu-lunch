@@ -6,9 +6,6 @@ import crawl
 
 rs = app.DATA["restaurants"]
 
-# 만다라트: 가운데가 주제, 8칸
-cells = app.mandalart_cells()
-assert len(cells) == 9 and cells[4] == app.CENTER, cells
 assert all(r["category"] in app.CATS for r in rs)
 
 # 가격 필터: 범위 밖은 빠지고, 가격 미확인(None)은 남음
@@ -20,21 +17,21 @@ assert app.filter_menus(rs, cats=[]) == []
 assert app.won(None) == "가격 미확인" and app.won(5500) == "5,500원"
 assert app.route_url(rs[0]).startswith("https://map.kakao.com/link/to/")
 
-# 식당 이름판: 카테고리별 식당 전부(개수 제한 없음), 메뉴는 빠짐없이
-groups = app.candidate_groups(["학식", "한식"], app.filter_menus(rs, cats=["학식", "한식"]))
-hak = {r["name"]: ms for r, ms in groups["학식"]}
-assert set(hak) == {r["name"] for r in rs if r["category"] == "학식"}, hak.keys()
-assert {"경기드림타워(기숙사) 식당", "샐리박스 경기대점", "E-스퀘어 스퀘어식당"} <= set(hak)
-assert len(groups["한식"]) == sum(r["category"] == "한식" for r in rs) > 8  # 8곳 넘어도 다 나옴
-esq = next(r for r in rs if r["name"] == "E-스퀘어 스퀘어식당")
-assert len(hak["E-스퀘어 스퀘어식당"]) == len(esq["menus"])
-assert app.price_range(hak["감성코어 식당"]) == "6,500원"  # 한식만 가격 확인, 돈까스·라면은 미확인
+# 고르기 목록: 종류·위치·예산으로 거르고 싼 순, 음료·사이드는 빼고 가격 미확인 식당은 뒤로
+pl = app.pick_list(rs, "학식")
+assert {r["name"] for r, _ in pl} == {r["name"] for r in rs if r["category"] == "학식"}
+assert {"경기드림타워(기숙사) 식당", "샐리박스 경기대점", "E-스퀘어 스퀘어식당"} <= {r["name"] for r, _ in pl}
+assert all(r["gate"] == "정문" for r, _ in app.pick_list(rs, where="정문"))
+assert all(r["where"] == "교내" for r, _ in app.pick_list(rs, where="교내"))
+cheap = app.pick_list(rs, budget=6000)
+assert all(m["price"] is None or m["price"] <= 6000 for _, ms in cheap for m in ms)
+assert all((m.get("type") or "") not in app.NOT_MEAL for _, ms in cheap for m in ms)
+lows = [min((m["price"] for m in ms if m["price"]), default=None) for _, ms in app.pick_list(rs)]
+known = [x for x in lows if x is not None]
+assert known == sorted(known) and lows[:len(known)] == known  # 싼 순, 가격 모르는 곳은 맨 뒤
 assert app.price_range([{"price": 3500}, {"price": None}, {"price": 6000}]) == "3,500~6,000원"
+esq = next(r for r in rs if r["name"] == "E-스퀘어 스퀘어식당")
 assert app.price_range([{"price": None}]) == "가격 미확인" and app.price_range([{"price": 7000}]) == "7,000원"
-h = app.board_html(groups, new=["학식"], chosen=["감성코어 식당"], pick_name="감성코어 식당", roll=True)
-assert h.count('class="bd-row') == 2 and "grow" in h and " pick" in h and "flash" in h and " chk" in h
-assert "한식 백반" not in h  # 판에는 식당 이름만
-assert "<script" not in app.board_html({"학식": [({"name": "<script>x", "where": "교내"}, [])]})
 
 # 캠퍼스 지도: 모든 식당 핀, 팝업에 메뉴 전부, 스크립트 끊김 방지
 import json
