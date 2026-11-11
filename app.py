@@ -779,6 +779,23 @@ def read_login_token(tok, now=None):
     return {"id": d["id"], "nick": str(d.get("nick") or "친구")[:20]}
 
 
+KAKAO_JS_KEY = os.environ.get("KAKAO_JS_KEY", "22f4180c9fb5e0f8412bc7e80bb4556e")  # 공개용 키(브라우저에 노출됨, 등록 도메인만 동작)
+KAKAO_SDK = ('<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.5/kakao.min.js" crossorigin="anonymous" '
+             'integrity="sha384-v6JKY3z4FUkWq21oZDHZe74YvuPk/WUrVLrDHTBojHXClOSa3iXy7sCXPY1jkFbj"></script>')
+
+
+def kakao_share_html(text, url):
+    """카카오톡 공유 버튼 (카카오 JS SDK). 글·링크는 JSON으로 넣고 '</'는 막아 스크립트가 끊기지 않게."""
+    def js(v):
+        return json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
+    return (KAKAO_SDK + '<button id="k" style="width:100%;border:none;border-radius:12px;padding:12px;background:#FEE500;'
+            "color:#191919;font:600 15px/1.2 'Pretendard Variable',-apple-system,'Malgun Gothic',sans-serif;cursor:pointer\">"
+            "카카오톡으로 초대 보내기</button><script>"
+            f"if(!Kakao.isInitialized())Kakao.init({js(KAKAO_JS_KEY)});"
+            'document.getElementById("k").onclick=()=>Kakao.Share.sendDefault({objectType:"text",'
+            f'text:{js(text)},link:{{mobileWebUrl:{js(url)},webUrl:{js(url)}}},buttonTitle:"모집 보기"}});</script>')
+
+
 def kakao_auth_url(key, redirect, state):
     return "https://kauth.kakao.com/oauth/authorize?" + urllib.parse.urlencode(
         {"client_id": key, "redirect_uri": redirect, "response_type": "code", "state": state})
@@ -1614,10 +1631,14 @@ def main():
                 with st.expander("정산하기"):
                     settle_panel(p, r, host)
             with st.expander("친구 초대 링크", expanded=ss.get("focus_party") == p["id"] and mine):
-                st.caption("오른쪽 위 복사 버튼 → 카톡에 붙여넣기. 링크를 누르면 이 모집이 바로 열려요"
+                msg = (f"🍚 {p['time']} {label(r) if r else p['place']} 같이 먹을 사람! ({count_text(p)})\n"
+                       f"{p.get('spot') or '식당 앞'}에서 만나요")
+                link = f"{base}/?party={p['id']}"
+                if public:  # 카카오 SDK는 콘솔에 등록한 도메인(배포 주소)에서만 동작
+                    components.html(kakao_share_html(msg, link), height=56)
+                st.caption("링크를 누르면 이 모집이 바로 열려요. 카톡 말고 다른 곳엔 아래 글을 복사해서 보내세요"
                            + ("" if public else " (지금은 같은 와이파이에서만 열려요)"))
-                st.code(f"🍚 {p['time']} {label(r) if r else p['place']} 같이 먹을 사람! ({count_text(p)})\n"
-                        f"{p.get('spot') or '식당 앞'}에서 만나요\n{base}/?party={p['id']}", language=None)
+                st.code(f"{msg}\n{link}", language=None)
 
 
 if __name__ == "__main__":

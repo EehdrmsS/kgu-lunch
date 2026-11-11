@@ -324,4 +324,7 @@ assert [m["r"] for m in st9["meals"]["k5"]] == ["A", "B", "C"]  # 같은 날 같
 assert app.recent_places(st9, "k5", "2026-11-12") == {"B", "C"} and app.recent_places(st9, "k6", "2026-11-12") == set()
 assert app.meal_summary(st9, "k5", "2026-11-12") == (3, ["C", "B", "A"])  # 11/9(월)부터 이번 주
 app.delete_me(st9, "k5"); assert "k5" not in st9["meals"]
+# 카카오톡 공유 버튼: 글에 </script>가 있어도 스크립트가 끊기지 않음
+h = app.kakao_share_html("밥 </script><script>alert(1)</script>", "https://x.app/?party=ab12cd")
+assert h.count("</script>") == 2 and r"<\/script>" in h and "integrity=" in h and "Kakao.Share.sendDefault" in h
 print("ok")
