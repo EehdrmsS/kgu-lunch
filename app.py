@@ -52,6 +52,14 @@ def pick_list(rs, cat="전체", where="전체", budget=None):
     return sorted(out, key=lambda rm: (low(rm) is None, low(rm) or 0, rm[0]["name"]))
 
 
+DELIVERY = DATA.get("delivery", {}).get("restaurants", [])  # crawl.py가 모은 경기대 3km 안 음식점
+
+
+def delivery_list(rs, cat="전체", max_m=3000):
+    """배달 고르기: 종류·거리로 거른 음식점 (가까운 순 그대로)."""
+    return [r for r in rs if (cat == "전체" or r["category"] == cat) and r["dist"] <= max_m]
+
+
 def price_range(menus):
     ps = sorted(m["price"] for m in menus if m["price"] is not None)
     if not ps:
@@ -1022,6 +1030,14 @@ p,li{color:var(--sub)}
   display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff!important;text-decoration:none!important;
   border-radius:16px;padding:13px 18px;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .traybar b{color:#FFB38A;font-size:14px}
+/* 고르기 첫 화면: 세로 카드 두 장 */
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .mode-marker) .stButton>button{min-height:120px;width:100%;
+  display:block;text-align:left;background:#fff;border-radius:20px;padding:22px 20px;margin-bottom:6px}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .mode-marker) .stButton>button>div,
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .mode-marker) .stButton>button>div>span{justify-content:flex-start;width:100%}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .mode-marker) .stButton>button p{margin:0;font-size:14px;color:var(--muted);white-space:normal}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .mode-marker) .stButton>button p:first-child{font-size:20px;color:var(--ink);margin-bottom:6px}
+.row .p a{color:var(--brand);text-decoration:none;font-weight:700}
 /* 추천 목록 줄 */
 /* 새 Streamlit은 버튼 글자를 div·span으로 감싸 가운데 정렬함 → 목록·메뉴 카드는 왼쪽 정렬로 */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button>div,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .rec-marker) .stButton>button>div>span{justify-content:flex-start;width:100%}
@@ -1507,51 +1523,92 @@ def main():
 
     # =============== 고르기: 배달앱처럼 필터 칩 → 식당 목록 → 누르면 메뉴·결정 ===============
     elif page == PAGES[2]:
-        page_head("고르기", "종류와 예산을 정하면 갈 만한 곳만 추려 드려요")
-        ss.setdefault("pk_budget", "1만원")
-        cat = chips_radio("종류", ["전체"] + CATS, key="pk_cat", scroll=True)
-        where = chips_radio("위치", WHERES, key="pk_where")
-        budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
-        lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
-        ate = recent_places(state, me, today()) if me else set()
-        if ate and st.toggle(f"최근 3일 간 곳 빼기 ({len(ate)}곳)", key="pk_fresh"):
-            lst = [(r, ms) for r, ms in lst if r["name"] not in ate]
-        if ss.get("pk_filter") != (cat, where, budget_lbl):  # 조건 바뀌면 다시 20곳부터
-            ss.pk_filter, ss.pk_n = (cat, where, budget_lbl), 20
-        a, b = st.columns([3, 1])
-        a.markdown(f'<div class="sec" style="margin-top:14px">{len(lst)}곳<small>싼 메뉴 순</small></div>', unsafe_allow_html=True)
-        if b.button("랜덤", disabled=not lst, use_container_width=True):
-            i = random.randrange(len(lst))
-            ss.pk_sel, ss.pk_n = lst[i][0]["name"], max(ss.pk_n, i + 1)  # 뽑힌 곳이 목록 밖이면 거기까지 펼침
-        if not lst:
-            st.markdown('<div class="card empty">조건에 맞는 식당이 없어요.<br>예산을 올리거나 위치를 전체로 바꿔보세요.</div>',
-                        unsafe_allow_html=True)
-        for r, ms in lst[:ss.pk_n]:
-            sel = ss.get("pk_sel") == r["name"]
-            top = [m["name"].split(" (")[0] for m in sorted(ms, key=lambda m: m["price"] or 10**9)[:2]]
+        mode = ss.get("pk_mode")
+        if not mode:  # 첫 화면: 어떻게 먹을지 먼저
+            page_head("고르기", "오늘은 어떻게 드실 건가요?")
             with st.container():
-                st.markdown(f'<span class="rec-marker{" on" if sel else ""}"></span>', unsafe_allow_html=True)
-                st.button(f"**{label(r)}** *{price_range(ms)}*\n\n{r['category']} · {r.get('gate') or r['where']} · {', '.join(top)}",
-                          key=f"pk|{r['name']}", use_container_width=True,
-                          on_click=lambda n=r["name"]: ss.__setitem__("pk_sel", None if ss.get("pk_sel") == n else n))
-            if sel:
-                rows = sorted(ms, key=lambda m: (m["price"] is None, m["price"] or 0))
-                st.markdown('<div class="card pickcard">' + "".join(
-                    f'<div class="row"><div class="n">{e(m["name"].split(" (")[0])}</div><div class="p">{won(m["price"])}</div></div>'
-                    for m in rows[:8])
-                    + (f'<div class="s" style="padding-top:8px">외 {len(rows) - 8}개는 메뉴판에서</div>' if len(rows) > 8 else "")
-                    + f'<div class="crowdrow">{crowd_html(r)}</div></div>', unsafe_allow_html=True)
-                c1, c2 = st.columns(2)
-                c1.button("여기로 결정", key=f"pk_ok|{r['name']}", type="primary", use_container_width=True,
-                          on_click=decide, args=([r["name"]],))
-                c2.button("같이 먹을 사람 찾기", key=f"pk_party|{r['name']}", use_container_width=True,
-                          on_click=go, args=(PAGES[3],), kwargs={"party_place": r["name"]})
-                c1, c2 = st.columns(2)
-                c1.button("메뉴판", key=f"pk_menu|{r['name']}", use_container_width=True, on_click=open_menu, args=(r["name"],))
-                c2.link_button("길찾기", route_url(r), use_container_width=True)
-        if len(lst) > ss.pk_n:
-            st.button(f"더 보기 ({len(lst) - ss.pk_n}곳 남음)", use_container_width=True,
-                      on_click=lambda: ss.__setitem__("pk_n", ss.pk_n + 20))
+                st.markdown('<span class="mode-marker"></span>', unsafe_allow_html=True)
+                st.button(f"**근처에서 먹어요**\n\n교내 학식과 정문·후문 식당 {len(places)}곳에서 메뉴까지 골라요",
+                          key="mode_near", use_container_width=True, on_click=lambda: ss.__setitem__("pk_mode", "근처"))
+                st.button(f"**오늘은 배달**\n\n경기대에서 3km 안, 배달 가능한 음식점 {len(DELIVERY):,}곳에서 골라요",
+                          key="mode_dl", use_container_width=True, on_click=lambda: ss.__setitem__("pk_mode", "배달"))
+        elif mode == "배달":
+            page_head("오늘은 배달", f"경기대에서 3km 안 음식점 {len(DELIVERY):,}곳 · 카카오맵 기준")
+            st.button("← 근처에서 먹기로 바꾸기", key="mode_back_dl", on_click=lambda: ss.pop("pk_mode", None))
+            dcat = chips_radio("종류", ["전체"] + [c for c in CATS if c != "학식"], key="dl_cat", scroll=True)
+            dist_lbl = chips_radio("거리", ["1km 안", "2km 안", "3km 안"], key="dl_dist")
+            dl = delivery_list(DELIVERY, dcat, {"1km 안": 1000, "2km 안": 2000, "3km 안": 3000}[dist_lbl])
+            if ss.get("dl_filter") != (dcat, dist_lbl):  # 조건 바뀌면 다시 20곳부터
+                ss.dl_filter, ss.dl_n, ss.dl_pick = (dcat, dist_lbl), 20, None
+            a_, b_ = st.columns([3, 1])
+            a_.markdown(f'<div class="sec" style="margin-top:14px">{len(dl):,}곳<small>가까운 순</small></div>', unsafe_allow_html=True)
+            if b_.button("랜덤", key="dl_rand", disabled=not dl, use_container_width=True):
+                ss.dl_pick = random.choice(dl)
+            pick = ss.get("dl_pick")
+            if pick:
+                st.markdown(f'<div class="result"><div class="k">오늘은 이거 시켜요</div><div class="n">{e(pick["name"])}</div>'
+                            f'<div style="margin-top:6px"><span class="chip brand">{e(pick["sub"] or pick["category"])}</span>'
+                            f'<span class="chip">{pick["dist"] / 1000:.1f}km</span></div></div>', unsafe_allow_html=True)
+                st.link_button("카카오맵에서 메뉴·전화 보기", pick["url"], type="primary", use_container_width=True)
+            if not dl:
+                st.markdown('<div class="card empty">조건에 맞는 음식점이 없어요.<br>거리를 넓혀보세요.</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="card">' + "".join(
+                    f'<div class="row"><div><div class="n">{e(r["name"])}</div>'
+                    f'<div class="s">{e(r["sub"] or r["category"])} · {e(r["address"].split(" ", 2)[-1] if r["address"] else "")}</div></div>'
+                    f'<div class="p"><a href="{e(r["url"])}" target="_blank" rel="noopener">{r["dist"] / 1000:.1f}km ›</a></div></div>'
+                    for r in dl[:ss.dl_n]) + "</div>", unsafe_allow_html=True)
+                if len(dl) > ss.dl_n:
+                    st.button(f"더 보기 ({len(dl) - ss.dl_n:,}곳 남음)", key="dl_more", use_container_width=True,
+                              on_click=lambda: ss.__setitem__("dl_n", ss.dl_n + 20))
+            st.caption("메뉴와 가격은 카카오맵·배달앱에서 확인하세요. 실제 배달 가능 여부는 가게마다 달라요.")
+        else:
+            st.button("← 배달로 바꾸기", key="mode_back_near", on_click=lambda: ss.pop("pk_mode", None))
+            page_head("고르기", "종류와 예산을 정하면 갈 만한 곳만 추려 드려요")
+            ss.setdefault("pk_budget", "1만원")
+            cat = chips_radio("종류", ["전체"] + CATS, key="pk_cat", scroll=True)
+            where = chips_radio("위치", WHERES, key="pk_where")
+            budget_lbl = chips_radio("예산", list(BUDGETS), key="pk_budget", scroll=True)
+            lst = pick_list(rs, cat, where, BUDGETS[budget_lbl])
+            ate = recent_places(state, me, today()) if me else set()
+            if ate and st.toggle(f"최근 3일 간 곳 빼기 ({len(ate)}곳)", key="pk_fresh"):
+                lst = [(r, ms) for r, ms in lst if r["name"] not in ate]
+            if ss.get("pk_filter") != (cat, where, budget_lbl):  # 조건 바뀌면 다시 20곳부터
+                ss.pk_filter, ss.pk_n = (cat, where, budget_lbl), 20
+            a, b = st.columns([3, 1])
+            a.markdown(f'<div class="sec" style="margin-top:14px">{len(lst)}곳<small>싼 메뉴 순</small></div>', unsafe_allow_html=True)
+            if b.button("랜덤", disabled=not lst, use_container_width=True):
+                i = random.randrange(len(lst))
+                ss.pk_sel, ss.pk_n = lst[i][0]["name"], max(ss.pk_n, i + 1)  # 뽑힌 곳이 목록 밖이면 거기까지 펼침
+            if not lst:
+                st.markdown('<div class="card empty">조건에 맞는 식당이 없어요.<br>예산을 올리거나 위치를 전체로 바꿔보세요.</div>',
+                            unsafe_allow_html=True)
+            for r, ms in lst[:ss.pk_n]:
+                sel = ss.get("pk_sel") == r["name"]
+                top = [m["name"].split(" (")[0] for m in sorted(ms, key=lambda m: m["price"] or 10**9)[:2]]
+                with st.container():
+                    st.markdown(f'<span class="rec-marker{" on" if sel else ""}"></span>', unsafe_allow_html=True)
+                    st.button(f"**{label(r)}** *{price_range(ms)}*\n\n{r['category']} · {r.get('gate') or r['where']} · {', '.join(top)}",
+                              key=f"pk|{r['name']}", use_container_width=True,
+                              on_click=lambda n=r["name"]: ss.__setitem__("pk_sel", None if ss.get("pk_sel") == n else n))
+                if sel:
+                    rows = sorted(ms, key=lambda m: (m["price"] is None, m["price"] or 0))
+                    st.markdown('<div class="card pickcard">' + "".join(
+                        f'<div class="row"><div class="n">{e(m["name"].split(" (")[0])}</div><div class="p">{won(m["price"])}</div></div>'
+                        for m in rows[:8])
+                        + (f'<div class="s" style="padding-top:8px">외 {len(rows) - 8}개는 메뉴판에서</div>' if len(rows) > 8 else "")
+                        + f'<div class="crowdrow">{crowd_html(r)}</div></div>', unsafe_allow_html=True)
+                    c1, c2 = st.columns(2)
+                    c1.button("여기로 결정", key=f"pk_ok|{r['name']}", type="primary", use_container_width=True,
+                              on_click=decide, args=([r["name"]],))
+                    c2.button("같이 먹을 사람 찾기", key=f"pk_party|{r['name']}", use_container_width=True,
+                              on_click=go, args=(PAGES[3],), kwargs={"party_place": r["name"]})
+                    c1, c2 = st.columns(2)
+                    c1.button("메뉴판", key=f"pk_menu|{r['name']}", use_container_width=True, on_click=open_menu, args=(r["name"],))
+                    c2.link_button("길찾기", route_url(r), use_container_width=True)
+            if len(lst) > ss.pk_n:
+                st.button(f"더 보기 ({len(lst) - ss.pk_n}곳 남음)", use_container_width=True,
+                          on_click=lambda: ss.__setitem__("pk_n", ss.pk_n + 20))
 
     # =============== 👫 같이 먹기 ===============
     else:

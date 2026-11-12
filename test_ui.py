@@ -37,6 +37,7 @@ at2 = AppTest.from_file("app.py", default_timeout=60); at2.run()
 assert not at2.exception and "로그인이 필요해요" in " ".join(m.value for m in at2.markdown)
 # 고르기에서 결정 → 홈 프로필에 식사 기록, 고르기에 '최근 간 곳 빼기'
 at.radio(key="nav").set_value("고르기"); at.run()
+at.button(key="mode_near").click(); at.run()
 first = next(b for b in at.button if b.key and b.key.startswith("pk|"))
 place = first.key[3:]
 first.click(); at.run()
@@ -85,6 +86,15 @@ assert "user" not in at.session_state and "로그인이 필요해요" in " ".joi
 at2.radio(key="nav").set_value("고르기")
 at2.run()
 assert not at2.exception, at2.exception
+# 첫 화면은 '근처에서 먹어요 / 오늘은 배달' 두 장 → 배달: 3km 안 음식점, 거리·랜덤
+assert {b.key for b in at2.button} >= {"mode_near", "mode_dl"}
+at2.button(key="mode_dl").click(); at2.run()
+assert not at2.exception, at2.exception
+assert "오늘은 배달" in " ".join(m.value for m in at2.markdown) and any(b.key == "dl_more" for b in at2.button)
+at2.button(key="dl_rand").click(); at2.run()
+assert "오늘은 이거 시켜요" in " ".join(m.value for m in at2.markdown)
+at2.button(key="mode_back_dl").click(); at2.run()
+at2.button(key="mode_near").click(); at2.run()
 more = [b for b in at2.button if b.label.startswith("더 보기")]
 assert more and sum(bool(b.key) and b.key.startswith("pk|") for b in at2.button) == 20
 more[0].click()

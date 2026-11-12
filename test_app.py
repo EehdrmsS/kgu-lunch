@@ -397,4 +397,8 @@ def _two(url, headers=None):
 crawl.fetch = _two
 assert [r["name"] for r in crawl.delivery_nearby("K", 37.30, 127.03)] == ["국밥집"]
 crawl.fetch = _real_fetch
+# 배달 고르기: 종류·거리로 거르고 가까운 순 유지
+_dl = [{"category": "한식", "dist": 300}, {"category": "중식", "dist": 900}, {"category": "한식", "dist": 2500}]
+assert app.delivery_list(_dl, "한식", 1000) == [_dl[0]] and app.delivery_list(_dl) == _dl and app.delivery_list(_dl, "양식") == []
+assert len(app.DELIVERY) > 1000 and all(r["dist"] <= 3000 for r in app.DELIVERY)
 print("ok")
