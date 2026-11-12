@@ -925,12 +925,12 @@ WEEKDAY = "월화수목금토일"
 # 앱처럼 보이게: 밝은 테마 + 카드 + 하단 탭바. 특정 영역만 꾸밀 땐 .xxx-marker를 넣고 :has()로 그 블록만 잡음
 APP_CSS = """<style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
-:root{--brand:#FF5A1F;--soft:#FFF2EC;--ink:#191F28;--sub:#4E5968;--muted:#8B95A1;--line:#EEF0F3;--bg:#F4F5F7}
+:root{--navgap:48px;--brand:#FF5A1F;--soft:#FFF2EC;--ink:#191F28;--sub:#4E5968;--muted:#8B95A1;--line:#EEF0F3;--bg:#F4F5F7}
 html,body,.stApp,.stApp *:not(.material-icons):not([class*="icon"]):not([data-testid*="Icon"]):not([class*="material"]){font-family:'Pretendard Variable',Pretendard,-apple-system,'Malgun Gothic',sans-serif}
 .stApp{background:var(--bg);color:var(--ink)}
 header[data-testid="stHeader"]{background:transparent;height:0}
 [data-testid="stToolbar"],[data-testid="stDecoration"],#MainMenu,footer,[data-testid="stStatusWidget"]{display:none!important}
-.block-container{max-width:720px;padding:.6rem 1rem 7rem}
+.block-container{max-width:720px;padding:.6rem 1rem calc(7rem + var(--navgap))}
 h1,h2,h3{letter-spacing:-.03em;color:var(--ink)}
 p,li{color:var(--sub)}
 /* 버튼 */
@@ -981,15 +981,15 @@ p,li{color:var(--sub)}
 /* 하단 탭바 */
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:999;
   width:min(720px,100%);background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);
-  display:flex;flex-wrap:nowrap;justify-content:space-around;gap:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.05)}
+  display:flex;flex-wrap:nowrap;justify-content:space-around;gap:0;padding:8px 6px calc(8px + var(--navgap) + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.05)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]>*{flex:1;display:flex;min-width:0}  /* 새 Streamlit은 칸마다 div로 한 번 더 감쌈 → 감싼 div도 칸 전체로 */
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:8px 0;border-radius:12px;position:relative;z-index:1;background:none!important;cursor:pointer}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label{flex:1;justify-content:center;margin:0;padding:12px 0;border-radius:12px;position:relative;z-index:1;background:none!important;cursor:pointer}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div:first-child,[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div>div:first-child:not([data-testid]){display:none}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label>div{flex:1;display:flex;justify-content:center;min-width:0}
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:13px;font-weight:600;color:var(--muted);transition:color .25s;text-align:center;margin:0}
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label p{font-size:15px;font-weight:600;color:var(--muted);transition:color .25s;text-align:center;margin:0}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"] label:has(input:checked) p{color:var(--brand);font-weight:800}
 /* 선택 표시: 탭바 위 한 장의 하이라이트가 고른 칸으로 미끄러져 감 (탭 4개 기준) */
-[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]::before{content:"";position:absolute;left:6px;top:8px;bottom:calc(8px + env(safe-area-inset-bottom));width:calc((100% - 12px) / 4);
+[data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]::before{content:"";position:absolute;left:6px;top:8px;bottom:calc(8px + var(--navgap) + env(safe-area-inset-bottom));width:calc((100% - 12px) / 4);
   border-radius:12px;background:var(--soft);box-shadow:inset 0 0 0 1px rgba(255,90,31,.18);transition:transform .38s cubic-bezier(.34,1.3,.5,1)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]:has(>:nth-child(2) input:checked)::before{transform:translateX(100%)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .nav-marker) div[role="radiogroup"]:has(>:nth-child(3) input:checked)::before{transform:translateX(200%)}
@@ -1017,7 +1017,7 @@ p,li{color:var(--sub)}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button p em{font-style:normal;color:var(--brand);font-weight:800;font-size:15px}
 [data-testid="stVerticalBlock"]:has(> [data-testid="element-container"] .kiosk-marker) .stButton>button p code{background:var(--brand);color:#fff;
   border-radius:8px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:4px}
-.traybar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom));z-index:998;width:min(688px,calc(100% - 24px));
+.traybar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + var(--navgap) + env(safe-area-inset-bottom));z-index:998;width:min(688px,calc(100% - 24px));
   display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff!important;text-decoration:none!important;
   border-radius:16px;padding:13px 18px;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .traybar b{color:#FFB38A;font-size:14px}
@@ -1055,7 +1055,7 @@ p,li{color:var(--sub)}
 .settle{margin:4px 0 10px}.settle div{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
 .settle div:last-child{border-bottom:none}.settle em.ok{color:#12B76A}.settle em{font-style:normal;font-size:11px;color:var(--brand);font-weight:700;margin-left:6px}
 /* 휴대폰: 터치 영역 넉넉히, 입력창 16px(아이폰 자동 확대 방지), 하단 탭바에 가리지 않게 */
-@media (max-width:640px){.block-container{padding:.4rem .75rem 8rem}
+@media (max-width:640px){.block-container{padding:.4rem .75rem calc(8rem + var(--navgap))}
   .stButton>button,.stLinkButton>a,[data-testid="stFormSubmitButton"]>button{min-height:44px}
   input,textarea,[data-baseweb="select"] *{font-size:16px!important}
   .card{padding:14px 15px}.party .tm{font-size:18px}.place{font-size:19px}}
