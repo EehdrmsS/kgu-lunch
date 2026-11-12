@@ -952,6 +952,7 @@ p,li{color:var(--sub)}
 .pf-pay{font-size:12px;color:var(--brand);font-weight:600;margin-top:4px}.fh{font-size:13px;font-weight:700;color:var(--sub);margin:6px 0 -6px}
 .pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
 .kbtn{display:block;text-align:center;background:#FEE500;color:#191919!important;text-decoration:none!important;font-weight:600;border-radius:12px;padding:.7rem;margin:2px 0 6px}.kbtn:hover{filter:brightness(.97)}.kcap{font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px}
+.opt{margin:10px 2px 4px}.opt b{display:block;font-size:15px;color:var(--ink)}.opt span{font-size:12px;color:var(--muted)}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
 .sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
@@ -1158,8 +1159,8 @@ def main():
 
     def decide(names):
         ss.decided = names[0]
-        if not me:
-            st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요 · 로그인하면 이용객 수에 반영돼요")
+        if not me or guest:
+            st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요 · 카카오로 로그인하면 이용객 수에 반영돼요")
             return
         counted = [add_visit(n, uid=me) for n in dict.fromkeys(names)]
         st.toast(f"{label(by_name[names[0]])}(으)로 결정했어요" + ("" if any(counted) else " · 오늘은 이미 반영됐어요"))
@@ -1232,6 +1233,7 @@ def main():
     # ---- 로그인 상태 (모든 화면 공용) ----
     user = ss.get("user")  # 카카오 로그인 → {"id": "k회원번호", "nick": 닉네임}
     me = user["id"] if user else ""
+    guest = bool(user and user.get("guest"))  # 비회원: 초대받은 모집 참여만 (세션 동안만 유지)
     profile = state.get("profiles", {}).get(me, {}) if me else {}
     my_nick = profile.get("nick") or (user["nick"] if user else "")
 
@@ -1279,7 +1281,14 @@ def main():
         n_in = sum(1 for p in places.values() if p[0]["where"] == "교내")
         page_head("오늘 점심 뭐 먹지", f"{now.month}월 {now.day}일 {WEEKDAY[now.weekday()]}요일 · 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳")
         # ---- 내 프로필 ----
-        if user:
+        if guest:
+            st.markdown(f'<div class="card prof"><div class="pf-av">{e(my_nick[:1])}</div><div>'
+                        f'<div class="pf-n">{e(my_nick)} <span style="font-size:12px;color:#8B95A1">비회원</span></div>'
+                        f'<div class="pf-s">카카오로 로그인하면 프로필·식사 기록을 저장할 수 있어요</div></div></div>',
+                        unsafe_allow_html=True)
+            st.button("나가기", key="guest_out", use_container_width=True, on_click=logout)
+            login_button()
+        elif user:
             mine_today = my_parties(state, me, today())
             nxt = min((p for p, _ in mine_today if p["time"] >= now_hm), key=lambda p: p["time"], default=None)
             n_week, recent = meal_summary(state, me, today())
@@ -1550,35 +1559,60 @@ def main():
 
         # 초대 링크로 들어왔고 아직 안 낀 모집이면: 배민 함께주문처럼 로그인 → 메뉴만 고르면 참여
         inv = find_party(state, ss.get("_linked") or "")
-        if inv and inv["date"] == today() and inv["time"] >= now_hm and not any(m["name"] == me for m in members_of(inv)):
+        joinable = bool(inv) and inv["date"] == today() and inv["time"] >= now_hm and party_status(inv, now_hm) == "모집중"
+        if not user:  # 입장 화면: 카카오 로그인 또는 (초대받았으면) 비회원으로 이름만 정하고 참여
+            with st.container(border=True):
+                if inv:
+                    ir0 = by_name.get(inv["place"])
+                    st.markdown(f'<div class="sec" style="margin-top:4px">{e(mask(nick_of(inv, host_of(inv))))}님이 초대했어요'
+                                f'<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
+                                f'<div class="pl" style="font-weight:700">{e(label(ir0) if ir0 else inv["place"])}</div>',
+                                unsafe_allow_html=True)
+                    if not joinable:
+                        st.caption("이 모집은 시간이 지났거나 마감됐어요. 로그인하면 다른 모집을 보거나 직접 올릴 수 있어요.")
+                elif ss.get("_linked"):
+                    st.markdown('<div class="sec" style="margin-top:4px">초대받은 모집을 찾을 수 없어요</div>', unsafe_allow_html=True)
+                    st.caption("모집이 삭제됐거나 끝났어요. 로그인하면 다른 모집을 보거나 직접 올릴 수 있어요.")
+                else:
+                    st.markdown('<div class="sec" style="margin-top:4px">같이 먹으려면 들어오기</div>', unsafe_allow_html=True)
+                st.markdown('<div class="opt"><b>카카오로 로그인</b><span>모집 올리기·참여·정산까지 모두 쓸 수 있어요</span></div>',
+                            unsafe_allow_html=True)
+                login_button(inv["id"] if inv else "g")
+                if joinable:
+                    st.markdown('<div class="opt"><b>비회원으로 참여</b><span>이름만 정하면 이 모집에 바로 들어가요 (이 창을 닫으면 다시 정해야 해요)</span></div>',
+                                unsafe_allow_html=True)
+                    with st.form("guest", border=False):
+                        gname = st.text_input("이름", max_chars=20, placeholder="친구들이 알아볼 이름", label_visibility="collapsed")
+                        if st.form_submit_button("이 이름으로 들어가기", use_container_width=True):
+                            if gname.strip():
+                                ss.user = {"id": "g" + uuid.uuid4().hex[:10], "nick": gname.strip()[:20], "guest": True}
+                                st.rerun()
+                            st.error("이름을 적어주세요")
+        elif inv and not joinable and not any(m["name"] == me for m in members_of(inv)):
+            st.caption("초대받은 모집은 시간이 지났거나 마감됐어요.")
+        if user and joinable and not any(m["name"] == me for m in members_of(inv)):
             ir = by_name.get(inv["place"])
             with st.container(border=True):
                 st.markdown(f'<div class="sec">{e(shown(nick_of(inv, host_of(inv))))}님이 초대했어요<small>{e(inv["time"])} · {count_text(inv)}</small></div>'
                             f'<div class="pl" style="font-weight:700">{e(label(ir) if ir else inv["place"])}</div>'
                             f'<div style="color:#8B95A1;font-size:14px">{e(inv.get("spot") or "식당 앞")}에서 만나요</div>',
                             unsafe_allow_html=True)
-                if not user:
-                    st.caption("카카오로 로그인하면 바로 메뉴를 골라 참여할 수 있어요.")
-                    login_button(inv["id"])
-                else:
-                    with st.form("invite", border=False):
-                        opts = [f'{m["name"]} · {won(m["price"])}' for m in (ir or {}).get("menus", [])]
-                        picks = st.multiselect("먹고 싶은 메뉴", opts, placeholder="메뉴판에서 골라요 (여러 개 가능)")
-                        if st.form_submit_button(f"{my_nick}(으)로 참여하기", type="primary", use_container_width=True):
-                            menu, res = ", ".join(p.split(" · ")[0] for p in picks), []
-                            update_state(lambda s: res.append(join_party(s, inv["id"], me, menu, my_nick)))
-                            if res[0]:
-                                st.error(res[0])
-                            else:
-                                ss.my_menu = menu
-                                st.rerun()
+                with st.form("invite", border=False):
+                    opts = [f'{m["name"]} · {won(m["price"])}' for m in (ir or {}).get("menus", [])]
+                    picks = st.multiselect("먹고 싶은 메뉴", opts, placeholder="메뉴판에서 골라요 (여러 개 가능)")
+                    if st.form_submit_button(f"{my_nick}(으)로 참여하기", type="primary", use_container_width=True):
+                        menu, res = ", ".join(p.split(" · ")[0] for p in picks), []
+                        update_state(lambda s: res.append(join_party(s, inv["id"], me, menu, my_nick)))
+                        if res[0]:
+                            st.error(res[0])
+                        else:
+                            ss.my_menu = menu
+                            st.rerun()
         if user:
             a, b = st.columns([3, 1])
-            a.markdown(f'<div style="padding-top:8px"><b>{e(my_nick)}</b>님으로 로그인됨</div>', unsafe_allow_html=True)
-            b.button("로그아웃", on_click=logout, use_container_width=True)
-        elif not inv:
-            st.caption("카카오로 로그인해야 모집하거나 참여할 수 있어요. (새로고침하면 다시 로그인해야 해요)")
-            login_button("g")
+            a.markdown(f'<div style="padding-top:8px"><b>{e(my_nick)}</b>님{"(비회원)" if guest else "으로 로그인됨"}</div>',
+                       unsafe_allow_html=True)
+            b.button("나가기" if guest else "로그아웃", key="party_logout", on_click=logout, use_container_width=True)
         my_menu = st.text_input("내가 먹을 메뉴 (선택)", key="my_menu", max_chars=40, placeholder="예: 숑숑카츠").strip()
 
         today_parties = sorted((p for p in state["parties"] if p["date"] == today()), key=lambda p: p["time"])
@@ -1598,8 +1632,8 @@ def main():
                 max_n = a.slider("최대 인원", 2, 8, 4)
                 note = b.text_input("한마디 (선택)", max_chars=60, placeholder="예: 3층 강의 끝나고 바로!")
                 if st.form_submit_button("모집 올리기", use_container_width=True):
-                    if not me:
-                        st.toast("카카오로 먼저 로그인해 주세요")
+                    if not me or guest:
+                        st.toast("모집은 카카오로 로그인해야 올릴 수 있어요")
                     else:
                         pid, res = uuid.uuid4().hex[:6], []
                         update_state(lambda s: res.append(add_party(s, pid, me, place, when.strftime("%H:%M"), spot, max_n,

@@ -90,4 +90,19 @@ assert more and sum(bool(b.key) and b.key.startswith("pk|") for b in at2.button)
 more[0].click()
 at2.run()
 assert sum(bool(b.key) and b.key.startswith("pk|") for b in at2.button) > 20
+# 초대 링크로 비회원 입장: 로그인/비회원 선택 → 이름만 정하고 → 메뉴 골라 참여
+_app.update_state(lambda s: _app.add_party(s, "g1", "k500", "버거&타코", "23:59", nick="방장"))
+at3 = AppTest.from_file("app.py", default_timeout=60)
+at3.query_params["party"] = "g1"
+at3.run()
+assert not at3.exception, at3.exception
+md = " ".join(m.value for m in at3.markdown)
+assert "님이 초대했어요" in md and "카카오로 로그인" in md and "비회원으로 참여" in md
+next(x for x in at3.text_input if x.placeholder == "친구들이 알아볼 이름").input("손님")
+next(b for b in at3.button if b.label == "이 이름으로 들어가기").click(); at3.run()
+assert not at3.exception, at3.exception
+assert at3.session_state["user"]["guest"] and at3.session_state["user"]["nick"] == "손님"
+next(b for b in at3.button if b.label == "손님(으)로 참여하기").click(); at3.run()
+party = next(p for p in json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))["parties"] if p["id"] == "g1")
+assert [m["nick"] for m in party["members"]] == ["방장", "손님"] and party["members"][1]["name"].startswith("g")
 print("apptest ok")
