@@ -554,6 +554,85 @@ def delete_me(s, uid):
     return None
 
 
+BANKS = ["카카오뱅크", "토스뱅크", "국민", "신한", "우리", "하나", "농협", "기업", "새마을금고", "우체국", "케이뱅크", "SC제일", "수협", "부산", "대구"]
+DEV_COOKIE, DEV_DAYS = "kgu_dev", 180  # 계좌번호를 볼 수 있게 인증한 브라우저 표시 (6개월)
+
+
+def _acct_fernet():
+    """계좌번호 암호화 키. DB에는 두지 않음: ACCOUNT_KEY → 서버 비밀값 SUPABASE_KEY(Streamlit Secrets)에서 유도 →
+    (로컬) 서명 키. 그래서 DB만 유출돼서는 풀 수 없음.
+    shortcut: SUPABASE_KEY를 바꾸면 저장된 계좌를 못 읽음(다시 입력 필요), 계좌 쓰는 사람이 늘면 ACCOUNT_KEY를 따로 두기."""
+    from cryptography.fernet import Fernet
+    import hashlib
+    material = os.environ.get("ACCOUNT_KEY") or os.environ.get("SUPABASE_KEY") or SECRET.decode()
+    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(b"kgu-acct|" + material.encode()).digest()))
+
+
+def dev_hash(token):
+    import hashlib
+    return hashlib.sha256(("dev|" + str(token)).encode()).hexdigest()
+
+
+def set_account(s, uid, bank, number, holder, device_token):
+    """송금 받을 계좌 저장(덮어쓰기). 번호·예금주는 암호화, 끝 4자리만 평문(가린 표시용). 이 브라우저를 인증 목록에 넣음."""
+    number = re.sub(r"[\s-]", "", str(number))
+    if bank not in BANKS:
+        return "은행을 골라주세요"
+    if not re.fullmatch(r"\d{10,16}", number):
+        return "계좌번호는 숫자 10~16자리로 적어주세요"
+    holder = str(holder).strip()[:20]
+    if not holder:
+        return "예금주를 적어주세요"
+    prof = s.setdefault("profiles", {}).setdefault(uid, {})
+    f = _acct_fernet()
+    old = (prof.get("acct") or {}).get("dev", [])
+    prof["acct"] = {"bank": bank, "enc": f.encrypt(f"{number}|{holder}".encode()).decode(), "last4": number[-4:],
+                    "dev": (old + [dev_hash(device_token)])[-3:], "log": (prof.get("acct") or {}).get("log", [])}
+    return None
+
+
+def add_device(s, uid, device_token):
+    """이 브라우저도 내 계좌를 볼 수 있게 (최근 3대까지)."""
+    acct = (s.get("profiles", {}).get(uid) or {}).get("acct")
+    if not acct:
+        return "등록한 계좌가 없어요"
+    h = dev_hash(device_token)
+    acct["dev"] = ([x for x in acct.get("dev", []) if x != h] + [h])[-3:]
+    return None
+
+
+def delete_account(s, uid):
+    (s.get("profiles", {}).get(uid) or {}).pop("acct", None)
+    return None
+
+
+def read_account(acct):
+    """(은행, 계좌번호, 예금주) — 복호화 실패(키 바뀜 등)면 None."""
+    try:
+        number, holder = _acct_fernet().decrypt(acct["enc"].encode()).decode().split("|", 1)
+    except Exception:
+        return None
+    return acct["bank"], number, holder
+
+
+def device_ok(acct, token):
+    return bool(acct and token) and dev_hash(token) in acct.get("dev", [])
+
+
+def can_see_account(p, viewer, now_hm):
+    """다른 사람 계좌 열람: 그 모집의 참여자(초대 링크 또는 방장 수락으로 들어온 사람)이고, 만날 시간이 지난 뒤에만.
+    결제 담당자 본인은 정산 화면에서 볼 필요가 없어 제외."""
+    return (bool(viewer) and viewer != payer_of(p) and any(m["name"] == viewer for m in members_of(p))
+            and p["time"] <= now_hm)
+
+
+def log_account_view(s, owner, viewer_nick, pid, when):
+    acct = (s.get("profiles", {}).get(owner) or {}).get("acct")
+    if acct is not None:
+        acct["log"] = (acct.get("log", []) + [{"who": str(viewer_nick)[:20], "party": pid, "at": when}])[-20:]
+    return None
+
+
 def my_parties(s, uid, day):
     """오늘 내가 방장이거나 참여한 모집 [(모집, 방장 여부)]"""
     return [(p, host_of(p) == uid) for p in s["parties"]
@@ -980,6 +1059,7 @@ p,li{color:var(--sub)}
 .pf-n{font-size:16px;font-weight:700;color:var(--ink)}.pf-s{font-size:13px;color:var(--muted);margin-top:2px}
 .kbtn{display:block;text-align:center;background:#FEE500;color:#191919!important;text-decoration:none!important;font-weight:600;border-radius:12px;padding:.7rem;margin:2px 0 6px}.kbtn:hover{filter:brightness(.97)}.kcap{font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px}
 .opt{margin:10px 2px 4px}.opt b{display:block;font-size:15px;color:var(--ink)}.opt span{font-size:12px;color:var(--muted)}
+.acct{font-size:16px;font-weight:700;color:var(--ink);background:var(--bg);border-radius:12px;padding:10px 12px;margin:4px 0}
 .card.empty{text-align:center;color:var(--muted);font-size:14px;line-height:1.6;padding:28px 18px}
 .sec{font-size:18px;font-weight:700;color:var(--ink);margin:26px 2px 8px;letter-spacing:-.02em}
 .sec small{font-size:13px;color:var(--muted);font-weight:500;margin-left:6px}
@@ -1130,6 +1210,7 @@ def main():
             try:
                 ss.user = kakao_user(KAKAO_KEY, qp.get("code"), login_redirect(host), KAKAO_SECRET)
                 ss.cookie_set, ss._logged_out = make_login_token(ss.user["id"], ss.user["nick"]), False
+                ss.fresh_login = True  # 자동 로그인(쿠키)이 아니라 방금 카카오로 로그인 → 계좌 브라우저 인증 가능
             except Exception as ex:  # 키·시크릿·Redirect URI 설정 오류, 코드 재사용 등 → 이유는 서버 로그에만
                 body = ex.read().decode("utf-8", "replace")[:300] if hasattr(ex, "read") else ""
                 print("kakao login failed:", repr(ex), body, flush=True)
@@ -1149,6 +1230,11 @@ def main():
                                    key="cookie_bridge", default=None)
     except Exception:  # shortcut: 로컬 Anaconda엔 컴포넌트에 필요한 pyarrow가 없어 로그인 유지만 건너뜀 (배포 서버엔 있음)
         cookie_val = None
+    try:  # 계좌번호 인증 브라우저 표시: 값은 무작위 토큰, 서버엔 해시만 저장
+        dev_token = cookie_bridge(name=DEV_COOKIE, set=ss.pop("dev_set", None), age=DEV_DAYS * 86400,
+                                  key="dev_bridge", default=None) or ss.get("dev_new")
+    except Exception:
+        dev_token = None
     if not ss.get("user") and not ss.get("_logged_out") and cookie_val:
         u = read_login_token(cookie_val)
         if u:
@@ -1284,6 +1370,53 @@ def main():
                         ss[k] = ss["_" + k] = v
             ss._pref_for = me
 
+    def account_section():  # 송금 받을 계좌: 인증한 브라우저에서만 전체 번호, 다른 곳은 가려서
+        acct = profile.get("acct")
+        st.markdown('<div class="fh">송금 받을 계좌</div>', unsafe_allow_html=True)
+        st.caption("(송금은 직접 해야 합니다.) 이 앱은 돈을 옮기지 않아요. 계좌번호는 암호화해 저장하고, "
+                   "인증한 브라우저와 내가 결제 담당인 모집의 참여자에게만, 만날 시간이 지난 뒤 보여요.")
+        trusted = device_ok(acct, dev_token)
+        if acct:
+            info = read_account(acct) if trusted else None
+            st.markdown(f'<div class="acct">{e(acct["bank"])} '
+                        + (f'{e(info[1])} · {e(info[2])}' if info else f'****{e(acct["last4"])}') + '</div>',
+                        unsafe_allow_html=True)
+            if trusted and not info:
+                st.caption("저장할 때와 서버 열쇠가 달라져 읽을 수 없어요. 계좌를 다시 입력해 주세요.")
+            if trusted and acct.get("log"):
+                st.caption("최근 열람: " + ", ".join(f'{x["who"]}({x["at"][5:16]})' for x in reversed(acct["log"][-5:])))
+        if acct and not trusted:  # 다른 브라우저: 방금 카카오로 로그인해야 이 브라우저를 추가 인증
+            if ss.get("fresh_login"):
+                st.button("이 브라우저에서도 계좌 보기 허용", key="acct_trust", use_container_width=True, on_click=trust_device)
+            else:
+                st.caption("이 브라우저는 인증되지 않아 계좌번호를 가렸어요. 아래에서 카카오로 다시 로그인하면 인증할 수 있어요.")
+                login_button()
+            return
+        if not acct and not ss.get("fresh_login"):
+            st.caption("계좌 등록은 보안을 위해 이번 접속에서 카카오로 직접 로그인한 뒤에만 할 수 있어요.")
+            login_button()
+            return
+        with st.form("acct_form", border=False):
+            a_, b_ = st.columns([1, 2])
+            a_.selectbox("은행", BANKS, key="ac_bank", index=BANKS.index(acct["bank"]) if acct else 0)
+            b_.text_input("계좌번호", key="ac_num", type="password", max_chars=20, placeholder="숫자만 (- 없이)")
+            st.text_input("예금주", key="ac_holder", max_chars=20)
+            st.form_submit_button("계좌 저장", type="primary", use_container_width=True, on_click=save_account)
+        if acct:
+            st.button("계좌 삭제", key="acct_del", use_container_width=True, on_click=lambda: act(delete_account, me))
+
+    def new_device_token():
+        tok = ss.get("dev_new") or dev_token or secrets.token_urlsafe(24)
+        ss.dev_new, ss.dev_set = tok, tok  # 이번 세션에서 바로 쓰고, 브라우저 쿠키로도 구움
+        return tok
+
+    def save_account():
+        act(set_account, me, ss.ac_bank, ss.ac_num, ss.ac_holder, new_device_token())
+        ss.ac_num = ""  # 화면에 남기지 않음
+
+    def trust_device():
+        act(add_device, me, new_device_token())
+
     def save_profile():
         nonlocal profile
         act(set_profile, me, ss.pf_nick, ss.pf_toss.strip().removeprefix("toss.me/"), ss.pf_kakao.strip(),
@@ -1360,8 +1493,8 @@ def main():
                     b.selectbox("자주 가는 곳", WHERES, key="pf_where", index=WHERES.index(profile.get("where", "전체")))
                     st.text_input("못 먹는 재료", profile.get("avoid", ""), key="pf_avoid", max_chars=60, placeholder="예: 해산물, 오이")
                     st.form_submit_button("저장", type="primary", use_container_width=True, on_click=save_profile)
-                st.caption("저장한 예산·위치·못 먹는 재료는 추천과 고르기에 미리 채워져요. "
-                           "무료 서버라 서버가 재시작되면 지워질 수 있어요.")
+                st.caption("저장한 예산·위치·못 먹는 재료는 추천과 고르기에 미리 채워져요.")
+                account_section()
                 st.markdown('<div class="fh">내 정보 삭제</div>', unsafe_allow_html=True)
                 sure = st.checkbox("프로필·송금 정보와 참여 중인 모집에서 나를 지울게요 (되돌릴 수 없어요)", key="del_me_sure")
                 st.button("내 정보 삭제하고 로그아웃", disabled=not sure, use_container_width=True,
@@ -1797,8 +1930,20 @@ def main():
             elif me in paid:
                 st.caption("결제 담당자가 송금 완료로 표시했어요.")
                 return
+            payer_acct = (state.get("profiles", {}).get(host) or {}).get("acct")
+            if payer_acct and can_see_account(p, me, now_hm):
+                info = read_account(payer_acct)
+                if info:
+                    st.markdown(f'<div class="acct">{e(info[0])} {e(info[1])} · {e(info[2])}</div>', unsafe_allow_html=True)
+                    st.caption("(송금은 직접 해야 합니다.) 은행 앱에서 위 계좌로 보내 주세요.")
+                    if not ss.get(f"acct_seen_{pid}"):  # 세션마다 한 번 열람 기록 (계좌 주인이 확인 가능)
+                        ss[f"acct_seen_{pid}"] = True
+                        update_state(lambda s: log_account_view(s, host, my_nick, pid, now_kst().isoformat(timespec="minutes")))
+            elif payer_acct and me != host and p["time"] > now_hm:
+                st.caption(f"{p['time']} 이후에 결제 담당자 계좌가 보여요.")
             if not pay_links(pay):
-                st.caption("결제 담당자가 토스 아이디나 카카오페이 링크를 저장하면 여기서 바로 송금할 수 있어요.")
+                if not payer_acct:
+                    st.caption("결제 담당자가 토스·카카오페이 링크나 계좌를 등록하면 여기서 확인할 수 있어요.")
                 return
             if me == host:  # 만나서 친구가 찍을 수 있게 QR
                 url = next(iter(pay_links(pay).values()))

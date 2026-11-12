@@ -73,6 +73,22 @@ assert not at.exception, at.exception
 assert json.load(open(os.environ["LUNCH_STATE"], encoding="utf-8"))["parties"][0]["payer"] == "k77"
 
 at.radio(key="nav").set_value("홈"); at.run()
+# 송금 계좌: 방금 카카오로 로그인한 세션만 등록 → 이 브라우저에선 전체 번호, 다른 브라우저(세션)에선 가림
+at.session_state["fresh_login"] = True
+at.run()
+at.text_input(key="ac_num").input("3333-01-2345678")
+at.text_input(key="ac_holder").input("동근")
+next(b for b in at.button if b.label == "계좌 저장").click(); at.run()
+assert not at.exception, at.exception
+raw = open(os.environ["LUNCH_STATE"], encoding="utf-8").read()
+assert "3333012345678" not in raw and '"last4": "5678"' in raw  # 저장은 암호화
+assert "3333012345678" in " ".join(m.value for m in at.markdown)  # 등록한 세션(브라우저)에선 보임
+other = AppTest.from_file("app.py", default_timeout=60)
+other.session_state["user"] = {"id": "k42", "nick": "동근"}
+other.run()
+md_other = " ".join(m.value for m in other.markdown)
+assert "****5678" in md_other and "3333012345678" not in md_other  # 다른 브라우저는 가림
+
 # 내 정보 삭제: 체크해야 버튼이 눌리고, 누르면 프로필 삭제 + 로그아웃
 next(x for x in at.checkbox if x.key == "del_me_sure").check()
 at.run()

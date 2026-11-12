@@ -405,4 +405,25 @@ assert len(app.DELIVERY) > 1000 and all(r["dist"] <= 3000 for r in app.DELIVERY)
 h = app.word_roller(["점심 뭐 먹지", "<b>떡볶이?", "라면?"])
 assert h.count("<i>") == 4 and h.endswith("<i>점심 뭐 먹지</i></span></span>") and "&lt;b&gt;" in h and "<b>" not in h
 assert "prefers-reduced-motion" in h and "100%{transform:translateY(-3.90em)}" in h
+# 송금 계좌: 암호화 저장, 인증 브라우저만 전체 번호, 참여자는 만날 시간 뒤에만
+s13 = {"parties": [], "profiles": {}}
+assert app.set_account(s13, "k1", "없는은행", "1234567890", "동근", "dev1") == "은행을 골라주세요"
+assert app.set_account(s13, "k1", "카카오뱅크", "12-34", "동근", "dev1") == "계좌번호는 숫자 10~16자리로 적어주세요"
+assert app.set_account(s13, "k1", "카카오뱅크", "3333-01-2345678", "  ", "dev1") == "예금주를 적어주세요"
+assert app.set_account(s13, "k1", "카카오뱅크", "3333-01-2345678", "이동근", "dev1") is None
+ac = s13["profiles"]["k1"]["acct"]
+assert "3333012345678" not in json.dumps(s13, ensure_ascii=False) and "이동근" not in json.dumps(s13, ensure_ascii=False)  # 평문 없음
+assert ac["last4"] == "5678" and app.read_account(ac) == ("카카오뱅크", "3333012345678", "이동근")
+assert app.device_ok(ac, "dev1") and not app.device_ok(ac, "dev2") and not app.device_ok(ac, None) and "dev1" not in str(ac["dev"])
+for d in ("d2", "d3", "d4"):
+    app.add_device(s13, "k1", d)
+assert not app.device_ok(ac, "dev1") and app.device_ok(ac, "d4")  # 최근 3대만
+assert app.read_account({**ac, "enc": "x" + ac["enc"][1:]}) is None  # 변조되면 못 읽음
+app.add_party(s13, "z1", "k1", "x", "12:00"); app.join_party(s13, "z1", "k2")
+p13 = s13["parties"][0]
+assert app.can_see_account(p13, "k2", "12:00") and not app.can_see_account(p13, "k2", "11:59")  # 만날 시간 뒤
+assert not app.can_see_account(p13, "k3", "13:00") and not app.can_see_account(p13, "", "13:00")  # 참여자 아님
+app.request_join(s13, "z1", "k4"); assert not app.can_see_account(p13, "k4", "13:00")  # 수락 대기 중이면 못 봄
+app.log_account_view(s13, "k1", "철수", "z1", "2026-11-12T12:05"); assert ac["log"][-1]["who"] == "철수"
+assert app.delete_account(s13, "k1") is None and "acct" not in s13["profiles"]["k1"]
 print("ok")
