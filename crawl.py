@@ -7,8 +7,11 @@ import datetime
 import html
 import io
 import json
+import math
 import os
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -22,10 +25,20 @@ KAKAO_CAT = {"한식": "한식", "분식": "분식", "중식": "중식", "일식
              "양식": "양식", "패스트푸드": "패스트푸드", "치킨": "패스트푸드"}
 
 
-def fetch(url, headers=None):
+def fetch(url, headers=None, tries=3):
+    """수백 번 부르는 배달 범위 수집 중 한 번의 시간 초과로 전체가 멈추지 않게 3번까지 다시 시도.
+    404 같은 확실한 거절(HTTPError)은 바로 올림."""
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", **(headers or {})})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.read()
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read()
+        except urllib.error.HTTPError:
+            raise
+        except OSError:
+            if i == tries - 1:
+                raise
+            time.sleep(2 * (i + 1))
 
 
 def text(s):
@@ -105,6 +118,54 @@ def kakao_nearby(key, lat, lng, radius=500):
     return docs
 
 
+DELIVERY_RADIUS = 3000  # 배달앱 기본 배달 거리 정도(3km)를 '배달 가능한 주변'으로 봄
+# 점심 배달로 고를 곳이 아닌 분류(술집·빵집·디저트·다른 회사 구내식당)는 뺌
+NOT_LUNCH = ("술집", "주점", "호프", "포장마차", "와인", "칵테일", "맥주", "제과", "베이커리", "떡,한과", "아이스크림",
+             "초콜릿", "디저트", "간식", "구내식당")
+
+
+def kakao_rect(key, rect, depth=0):
+    """사각형(경도1,위도1,경도2,위도2) 안 음식점 전부. 카카오는 한 번에 45개까지라 넘치면 4등분해서 다시 찾음."""
+    docs, total = [], 0
+    for page in (1, 2, 3):
+        q = urllib.parse.urlencode({"category_group_code": "FD6", "rect": ",".join(f"{v:.6f}" for v in rect), "page": page})
+        r = json.loads(fetch("https://dapi.kakao.com/v2/local/search/category.json?" + q,
+                             {"Authorization": "KakaoAK " + key}))
+        docs += r["documents"]
+        total = r["meta"]["total_count"]
+        if r["meta"]["is_end"]:
+            break
+    if total <= 45 or depth >= 6:  # 6번 쪼개면 약 90m 칸이라 그 안에 45곳 넘는 일은 없음
+        return docs
+    x1, y1, x2, y2 = rect
+    mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+    out = []
+    for sub in ((x1, y1, mx, my), (mx, y1, x2, my), (x1, my, mx, y2), (mx, my, x2, y2)):
+        out += kakao_rect(key, sub, depth + 1)
+    return out
+
+
+def distance_m(lat1, lng1, lat2, lng2):
+    dy = (lat2 - lat1) * 111_000
+    dx = (lng2 - lng1) * 111_000 * math.cos(math.radians(lat1))
+    return math.hypot(dx, dy)
+
+
+def delivery_nearby(key, lat, lng, radius=DELIVERY_RADIUS):
+    """경기대 중심 반경 안 음식점(배달 고르기용): 이름·종류·좌표·거리만, 가까운 순."""
+    d_lat, d_lng = radius / 111_000, radius / (111_000 * math.cos(math.radians(lat)))
+    seen = {}
+    for d in kakao_rect(key, (lng - d_lng, lat - d_lat, lng + d_lng, lat + d_lat)):
+        dist = distance_m(lat, lng, float(d["y"]), float(d["x"]))
+        if dist <= radius and d["id"] not in seen and not any(w in d["category_name"] for w in NOT_LUNCH):
+            parts = d["category_name"].split(" > ")
+            seen[d["id"]] = {"name": d["place_name"], "category": KAKAO_CAT.get((parts + [""])[1], "기타"),
+                             "sub": parts[-1] if len(parts) > 1 else "", "lat": float(d["y"]), "lng": float(d["x"]),
+                             "address": d.get("road_address_name") or d.get("address_name", ""), "url": d["place_url"],
+                             "dist": int(dist)}
+    return sorted(seen.values(), key=lambda r: (r["dist"], r["name"]))
+
+
 CAMPUS_ADDR = "광교산로 154-42"  # 교내 가게는 data.json 교내 식당으로 직접 관리
 
 
@@ -180,6 +241,11 @@ def main():
         data["restaurants"] = [r for r in data["restaurants"] if r.get("source") != "kakao"] + sorted(
             found.values(), key=lambda r: (r["gate"], r["name"]))
         print("카카오 주변 음식점:", len(found))
+        c = data["campus"]
+        dl = delivery_nearby(key, c["lat"], c["lng"])
+        if dl:  # 비면(일시 오류) 예전 목록 유지
+            data["delivery"] = {"radius": DELIVERY_RADIUS, "restaurants": dl}
+        print(f"배달 범위({DELIVERY_RADIUS}m) 음식점:", len(dl))
     else:
         print("카카오 키 없음(KAKAO_REST_KEY 또는 .kakao_key) → 주변 음식점 자동 수집 건너뜀")
 

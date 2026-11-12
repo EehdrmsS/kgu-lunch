@@ -364,4 +364,37 @@ assert not app.is_admin("") and not app.is_admin("k1") and app.is_admin("k901")
 assert app.delete_party(s12, "a1", "k2") == "방장만 삭제할 수 있어요"
 assert app.delete_party(s12, "a1", "k900") is None and s12["parties"] == []
 _os.environ.pop("ADMIN_IDS")
+# 배달 범위 수집: 45개 넘는 칸은 4등분, 반경 밖·중복은 빼고 가까운 순
+_places = [(37.30 + dy * 0.002, 127.03 + dx * 0.002) for dy in range(-20, 21) for dx in range(-20, 21)]  # 41x41 격자
+
+
+def _fake_fetch(url, headers=None):
+    q = dict(x.split("=", 1) for x in url.split("?", 1)[1].split("&"))
+    x1, y1, x2, y2 = map(float, q["rect"].replace("%2C", ",").split(","))
+    hit = [(la, ln) for la, ln in _places if x1 <= ln <= x2 and y1 <= la <= y2]
+    page = int(q["page"])
+    docs = [{"id": f"{la:.3f},{ln:.3f}", "place_name": f"식당{la:.3f}{ln:.3f}", "category_name": "음식점 > 한식 > 국밥",
+             "x": str(ln), "y": str(la), "place_url": "u", "road_address_name": ""} for la, ln in hit[(page - 1) * 15: page * 15]]
+    return json.dumps({"documents": docs, "meta": {"total_count": len(hit), "is_end": page * 15 >= min(len(hit), 45)}}).encode()
+
+
+_real_fetch, crawl.fetch = crawl.fetch, _fake_fetch
+dl = crawl.delivery_nearby("K", 37.30, 127.03, radius=3000)
+crawl.fetch = _real_fetch
+inside = [p for p in _places if crawl.distance_m(37.30, 127.03, *p) <= 3000]
+assert len(dl) == len(inside) and len({r["name"] for r in dl}) == len(dl)  # 빠짐·중복 없음
+assert [r["dist"] for r in dl] == sorted(r["dist"] for r in dl) and dl[0]["category"] == "한식" and dl[0]["sub"] == "국밥"
+# 술집·빵집은 배달 점심 후보에서 뺌
+
+
+def _two(url, headers=None):
+    docs = [{"id": str(i), "place_name": n, "category_name": c, "x": "127.03", "y": "37.30", "place_url": "u"}
+            for i, (n, c) in enumerate([("호프집", "음식점 > 술집 > 호프,요리주점"), ("빵집", "음식점 > 간식 > 제과,베이커리"),
+                                        ("국밥집", "음식점 > 한식 > 국밥")])]
+    return json.dumps({"documents": docs, "meta": {"total_count": 3, "is_end": True}}).encode()
+
+
+crawl.fetch = _two
+assert [r["name"] for r in crawl.delivery_nearby("K", 37.30, 127.03)] == ["국밥집"]
+crawl.fetch = _real_fetch
 print("ok")
