@@ -401,4 +401,8 @@ crawl.fetch = _real_fetch
 _dl = [{"category": "한식", "dist": 300}, {"category": "중식", "dist": 900}, {"category": "한식", "dist": 2500}]
 assert app.delivery_list(_dl, "한식", 1000) == [_dl[0]] and app.delivery_list(_dl) == _dl and app.delivery_list(_dl, "양식") == []
 assert len(app.DELIVERY) > 1000 and all(r["dist"] <= 3000 for r in app.DELIVERY)
+# 제목 단어 교체: 첫 단어로 끝나고(이음매 없음), 이름은 이스케이프, 움직임 줄이기 대응
+h = app.word_roller(["점심 뭐 먹지", "<b>떡볶이?", "라면?"])
+assert h.count("<i>") == 4 and h.endswith("<i>점심 뭐 먹지</i></span></span>") and "&lt;b&gt;" in h and "<b>" not in h
+assert "prefers-reduced-motion" in h and "100%{transform:translateY(-3.90em)}" in h
 print("ok")

@@ -60,6 +60,25 @@ def delivery_list(rs, cat="전체", max_m=3000):
     return [r for r in rs if (cat == "전체" or r["category"] == cat) and r["dist"] <= max_m]
 
 
+def word_roller(words, hold=2.2, move=0.4):
+    """제목 단어 교체 연출: words를 차례로 위로 밀어 올리며 바꿔 보여주는 HTML+CSS (자바스크립트 없음).
+    첫 단어를 끝에 한 번 더 붙여 이음매 없이 반복. 움직임 줄이기 설정이면 첫 단어만."""
+    from html import escape as e
+    seq = list(words) + [words[0]]
+    step = hold + move
+    total = step * len(words)
+    frames = []
+    for k in range(len(words)):
+        frames.append(f"{k * step / total * 100:.2f}%,{(k * step + hold) / total * 100:.2f}%{{transform:translateY(-{k * 1.3:.2f}em)}}")
+    frames.append(f"100%{{transform:translateY(-{len(words) * 1.3:.2f}em)}}")
+    return (f'<style>@keyframes wroll{{{"".join(frames)}}}'
+            f'.wroll{{display:inline-block;height:1.3em;line-height:1.3em;overflow:hidden;vertical-align:bottom}}'
+            f'.wroll>span{{display:block;animation:wroll {total:.1f}s ease-in-out infinite}}'
+            f'.wroll i{{display:block;font-style:normal;color:var(--brand)}}.wroll i:first-child{{color:inherit}}'
+            f'@media (prefers-reduced-motion:reduce){{.wroll>span{{animation:none}}}}</style>'
+            f'<span class="wroll" aria-label="{e(words[0])}"><span>' + "".join(f"<i>{e(w)}</i>" for w in seq) + "</span></span>")
+
+
 def price_range(menus):
     ps = sorted(m["price"] for m in menus if m["price"] is not None)
     if not ps:
@@ -1295,7 +1314,11 @@ def main():
     # =============== 🏠 홈 ===============
     if page == PAGES[0]:
         n_in = sum(1 for p in places.values() if p[0]["where"] == "교내")
-        page_head("오늘 점심 뭐 먹지", f"{now.month}월 {now.day}일 {WEEKDAY[now.weekday()]}요일 · 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳")
+        if "roll_words" not in ss:  # 세션마다 한 번 뽑음: 크롤링한 메뉴 중 짧은 이름 6개 (가격 아는 식사 메뉴)
+            pool = sorted({m["name"].split(" (")[0] for r in rs for m in r["menus"]
+                           if m["price"] and (m.get("type") or "") not in NOT_MEAL and len(m["name"].split(" (")[0]) <= 9})
+            ss.roll_words = ["점심 뭐 먹지"] + [w + "?" for w in random.sample(pool, min(6, len(pool)))]
+        page_head("오늘 " + word_roller(ss.roll_words), f"{now.month}월 {now.day}일 {WEEKDAY[now.weekday()]}요일 · 학식 {n_in}곳 · 주변 식당 {len(places) - n_in}곳")
         # ---- 내 프로필 ----
         if guest:
             st.markdown(f'<div class="card prof"><div class="pf-av">{e(my_nick[:1])}</div><div>'
