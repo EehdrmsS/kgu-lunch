@@ -2834,7 +2834,7 @@
     "배추김치"
    ]
   },
-  "fetched": "2026-11-16"
+  "fetched": "2026-11-17"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -16126,6 +16126,16 @@
     "dist": 2586
    },
    {
+    "name": "핫도그랩",
+    "category": "패스트푸드",
+    "sub": "패스트푸드",
+    "lat": 37.30069992631908,
+    "lng": 127.00762802344587,
+    "address": "경기 수원시 장안구 송원로59번길 15",
+    "url": "http://place.map.kakao.com/1840627714",
+    "dist": 2587
+   },
+   {
     "name": "불앤구이돈 정자직영점",
     "category": "한식",
     "sub": "육류,고기",
@@ -16193,16 +16203,6 @@
     "lng": 127.06091694168819,
     "address": "경기 수원시 영통구 광교중앙로 170",
     "url": "http://place.map.kakao.com/446730277",
-    "dist": 2591
-   },
-   {
-    "name": "핫도그랩",
-    "category": "패스트푸드",
-    "sub": "패스트푸드",
-    "lat": 37.3007999442038,
-    "lng": 127.007584045183,
-    "address": "경기 수원시 장안구 송원로59번길 15",
-    "url": "http://place.map.kakao.com/1840627714",
     "dist": 2591
    },
    {
@@ -24394,6 +24394,16 @@
     "address": "경기 수원시 장안구 수성로303번길 8",
     "url": "http://place.map.kakao.com/384837218",
     "dist": 2995
+   },
+   {
+    "name": "병천옥얼큰순대국 정자사거리점",
+    "category": "한식",
+    "sub": "순대",
+    "lat": 37.29124996610859,
+    "lng": 127.00548093401822,
+    "address": "경기 수원시 장안구 수성로 304",
+    "url": "http://place.map.kakao.com/779896390",
+    "dist": 2997
    },
    {
     "name": "쭈꾸미전문점정가맛집",
