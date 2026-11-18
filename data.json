@@ -2834,7 +2834,7 @@
     "배추김치"
    ]
   },
-  "fetched": "2026-11-17"
+  "fetched": "2026-11-18"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -8626,13 +8626,13 @@
     "dist": 1818
    },
    {
-    "name": "BBQ 수원우만1점",
+    "name": "가장맛있는치킨 광교우만점",
     "category": "패스트푸드",
-    "sub": "BBQ",
-    "lat": 37.285316613232226,
-    "lng": 127.03316719579625,
+    "sub": "치킨",
+    "lat": 37.2853157118673,
+    "lng": 127.033168323076,
     "address": "경기 수원시 팔달구 월드컵로311번길 30",
-    "url": "http://place.map.kakao.com/18770874",
+    "url": "http://place.map.kakao.com/749041977",
     "dist": 1820
    },
    {
