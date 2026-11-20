@@ -2790,7 +2790,7 @@
   "restaurant": "감성코어",
   "start": "2026-11-16",
   "end": "2026-11-21",
-  "pdf": "https://www.kyonggi.ac.kr/data/WAS_DATA/cmmAtchmnfl/TnRstrntMenu/20261113/20261113010100873_AZEM.pdf",
+  "pdf": "https://www.kyonggi.ac.kr/data/WAS_DATA/cmmAtchmnfl/TnRstrntMenu/20261119/20261119125348115_O8Rh.pdf",
   "days": {
    "2026-11-16": [
     "쌀밥",
@@ -2830,11 +2830,11 @@
     "미역국",
     "마라샹궈",
     "연근조림",
-    "꽃빵튀김*연유",
+    "고추지",
     "배추김치"
    ]
   },
-  "fetched": "2026-11-19"
+  "fetched": "2026-11-20"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -6256,16 +6256,6 @@
     "dist": 1516
    },
    {
-    "name": "이차돌 광교중앙역점",
-    "category": "한식",
-    "sub": "이차돌",
-    "lat": 37.2927432956102,
-    "lng": 127.050162813668,
-    "address": "경기 수원시 영통구 센트럴타운로 106",
-    "url": "http://place.map.kakao.com/343767507",
-    "dist": 1516
-   },
-   {
     "name": "짚불한정식",
     "category": "한식",
     "sub": "한정식",
@@ -7074,6 +7064,16 @@
     "address": "경기 수원시 영통구 센트럴타운로 85",
     "url": "http://place.map.kakao.com/27122527",
     "dist": 1625
+   },
+   {
+    "name": "달랑떡볶이",
+    "category": "분식",
+    "sub": "떡볶이",
+    "lat": 37.2894808055911,
+    "lng": 127.047572489724,
+    "address": "경기 수원시 영통구 도청로89번길 31",
+    "url": "http://place.map.kakao.com/611104105",
+    "dist": 1626
    },
    {
     "name": "벱비엣",
@@ -12803,6 +12803,16 @@
     "lng": 127.03127959675554,
     "address": "경기 수원시 팔달구 팔달문로130번길 47",
     "url": "http://place.map.kakao.com/8031545",
+    "dist": 2411
+   },
+   {
+    "name": "피피케이키친 행궁점",
+    "category": "양식",
+    "sub": "피자",
+    "lat": 37.2863111351264,
+    "lng": 127.017322453592,
+    "address": "경기 수원시 팔달구 수원천로 367",
+    "url": "http://place.map.kakao.com/1540308841",
     "dist": 2411
    },
    {
@@ -19194,6 +19204,16 @@
     "address": "경기 수원시 팔달구 창룡대로 8",
     "url": "http://place.map.kakao.com/304923450",
     "dist": 2778
+   },
+   {
+    "name": "고레카레 장안점",
+    "category": "기타",
+    "sub": "고레카레",
+    "lat": 37.3026237595153,
+    "lng": 127.005447921298,
+    "address": "경기 수원시 장안구 경수대로955번길 19",
+    "url": "http://place.map.kakao.com/280157605",
+    "dist": 2781
    },
    {
     "name": "나는문어타코야끼 수원송죽점",
