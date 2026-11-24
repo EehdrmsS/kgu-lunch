@@ -2829,7 +2829,7 @@
     "논술고사휴무"
    ]
   },
-  "fetched": "2026-11-23"
+  "fetched": "2026-11-24"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -5849,16 +5849,6 @@
     "address": "경기 수원시 영통구 센트럴타운로 111",
     "url": "http://place.map.kakao.com/1292182006",
     "dist": 1463
-   },
-   {
-    "name": "천지연 수원광교월드마크점",
-    "category": "한식",
-    "sub": "육류,고기",
-    "lat": 37.2919790117575,
-    "lng": 127.048489815949,
-    "address": "경기 수원시 영통구 센트럴타운로 107",
-    "url": "http://place.map.kakao.com/27512529",
-    "dist": 1465
    },
    {
     "name": "카페그리닝 샌드위치 샐러드 광교점",
@@ -20691,7 +20681,7 @@
     "dist": 2849
    },
    {
-    "name": "톤톤톤",
+    "name": "톤톤톤 수원본점",
     "category": "일식·아시안",
     "sub": "일식",
     "lat": 37.2858505327417,
@@ -21241,6 +21231,16 @@
     "dist": 2869
    },
    {
+    "name": "도리도감",
+    "category": "한식",
+    "sub": "한식",
+    "lat": 37.291033087815,
+    "lng": 127.066670968665,
+    "address": "경기 수원시 영통구 광교중앙로248번길 7-2",
+    "url": "http://place.map.kakao.com/1529467809",
+    "dist": 2869
+   },
+   {
     "name": "맛장금한식뷔페",
     "category": "기타",
     "sub": "한식뷔페",
@@ -21529,6 +21529,26 @@
     "address": "경기 수원시 팔달구 세지로 298",
     "url": "http://place.map.kakao.com/15936520",
     "dist": 2881
+   },
+   {
+    "name": "맘스터치 광교법조타운점",
+    "category": "패스트푸드",
+    "sub": "맘스터치",
+    "lat": 37.2923175030268,
+    "lng": 127.067490870291,
+    "address": "경기 수원시 영통구 광교중앙로 250",
+    "url": "http://place.map.kakao.com/485680738",
+    "dist": 2882
+   },
+   {
+    "name": "맘스피자 광교법조타운점",
+    "category": "양식",
+    "sub": "맘스피자",
+    "lat": 37.2923175030268,
+    "lng": 127.067490870291,
+    "address": "경기 수원시 영통구 광교중앙로 250",
+    "url": "http://place.map.kakao.com/1554167243",
+    "dist": 2882
    },
    {
     "name": "옛날돈까스 광교법조타운점",
@@ -22281,16 +22301,6 @@
     "dist": 2919
    },
    {
-    "name": "라화쿵부 아주대점",
-    "category": "중식",
-    "sub": "라화쿵부",
-    "lat": 37.2757710018112,
-    "lng": 127.044191409443,
-    "address": "경기 수원시 영통구 아주로 10",
-    "url": "http://place.map.kakao.com/1650516175",
-    "dist": 2920
-   },
-   {
     "name": "리블럽",
     "category": "양식",
     "sub": "양식",
@@ -22539,6 +22549,16 @@
     "address": "경기 수원시 영통구 월드컵로193번길 75",
     "url": "http://place.map.kakao.com/10817774",
     "dist": 2926
+   },
+   {
+    "name": "본죽&비빔밥cafe 광교상현역점",
+    "category": "기타",
+    "sub": "본죽&비빔밥cafe",
+    "lat": 37.2976692588696,
+    "lng": 127.06974460406,
+    "address": "경기 용인시 수지구 광교중앙로 310",
+    "url": "http://place.map.kakao.com/1382481358",
+    "dist": 2928
    },
    {
     "name": "복성루",
