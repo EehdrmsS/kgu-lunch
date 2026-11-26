@@ -2829,7 +2829,7 @@
     "논술고사휴무"
    ]
   },
-  "fetched": "2026-11-25"
+  "fetched": "2026-11-26"
  },
  "dorm_weekly": {
   "url": "https://dorm.kyonggi.ac.kr:446/Khostel/mall_main.php?viewform=B0001_foodboard_list&board_no=1",
@@ -4501,7 +4501,7 @@
     "dist": 925
    },
    {
-    "name": "대포햇도그 연무점",
+    "name": "대포햇도그&옛날돈까스 연무점",
     "category": "분식",
     "sub": "분식",
     "lat": 37.29462498288136,
@@ -7209,16 +7209,6 @@
     "address": "경기 수원시 영통구 센트럴타운로 92",
     "url": "http://place.map.kakao.com/27006959",
     "dist": 1649
-   },
-   {
-    "name": "뭐가남루",
-    "category": "중식",
-    "sub": "중국요리",
-    "lat": 37.2917787651034,
-    "lng": 127.051144462675,
-    "address": "경기 수원시 영통구 센트럴타운로 92",
-    "url": "http://place.map.kakao.com/270776632",
-    "dist": 1651
    },
    {
     "name": "제이제이제이푸드",
@@ -17341,16 +17331,6 @@
     "dist": 2664
    },
    {
-    "name": "에어홀피자",
-    "category": "양식",
-    "sub": "피자",
-    "lat": 37.2838135850725,
-    "lng": 127.016410737332,
-    "address": "경기 수원시 팔달구 정조로 848-1",
-    "url": "http://place.map.kakao.com/1949825700",
-    "dist": 2665
-   },
-   {
     "name": "오노레",
     "category": "양식",
     "sub": "양식",
@@ -18358,6 +18338,16 @@
     "lng": 127.006105551843,
     "address": "경기 수원시 장안구 경수대로 953",
     "url": "http://place.map.kakao.com/1142801545",
+    "dist": 2727
+   },
+   {
+    "name": "에어홀피자",
+    "category": "양식",
+    "sub": "피자",
+    "lat": 37.282914318549196,
+    "lng": 127.01662141071061,
+    "address": "경기 수원시 팔달구 정조로 838-1",
+    "url": "http://place.map.kakao.com/1949825700",
     "dist": 2727
    },
    {
